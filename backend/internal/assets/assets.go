@@ -13,3 +13,6 @@ var DOCXBase embed.FS
 
 //go:embed templates/meta.json
 var TemplateMeta []byte
+
+//go:embed icons/*.png
+var Icons embed.FS

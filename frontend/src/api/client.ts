@@ -24,11 +24,14 @@ export const api = {
     request<Resume>(`/api/resumes/${id}`, { method: 'PUT', body: JSON.stringify({ title, data }) }),
   deleteResume: (id: string) => request<void>(`/api/resumes/${id}`, { method: 'DELETE' }),
   getTemplates: () => request<TemplateMeta[]>('/api/templates'),
-  exportPDF: async (data: ResumeData, filename: string) => {
+  exportPDF: async (data: ResumeData, html: string, filename: string) => {
+    if (!html?.trim()) {
+      throw new Error('Preview HTML is missing — refresh the page and try again');
+    }
     const res = await fetch(`${API_BASE}/api/resumes/export/pdf`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ data, html }),
     });
     if (!res.ok) throw new Error('PDF export failed');
     const blob = await res.blob();

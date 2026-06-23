@@ -24,70 +24,30 @@ func generateClassicPDF(data models.ResumeData) ([]byte, error) {
 
 	pdf.SetFont("Helvetica", "B", 22)
 	pdf.SetTextColor(r, g, b)
-	pdf.CellFormat(0, 10, data.PersonalInfo.FullName, "", 1, "L", false, 0, "")
+	pdf.CellFormat(0, 10, pdfSafeText(data.PersonalInfo.FullName), "", 1, "L", false, 0, "")
 
 	pdf.SetFont("Helvetica", "", 10)
 	pdf.SetTextColor(80, 80, 80)
-	contact := joinNonEmpty([]string{
-		data.PersonalInfo.Email, data.PersonalInfo.Phone, data.PersonalInfo.Location,
-		data.PersonalInfo.Website, data.PersonalInfo.LinkedIn, data.PersonalInfo.GitHub,
-	}, "  •  ")
-	pdf.MultiCell(0, 5, contact, "", "L", false)
-
-	pdf.Ln(4)
-	drawSectionHeader(pdf, "Summary", r, g, b)
-	pdf.SetFont("Helvetica", "", fontSize)
-	pdf.SetTextColor(40, 40, 40)
-	pdf.MultiCell(0, 5, data.PersonalInfo.Summary, "", "L", false)
-
-	if len(data.Experience) > 0 {
-		pdf.Ln(3)
-		drawSectionHeader(pdf, "Experience", r, g, b)
-		for _, exp := range data.Experience {
-			writeExperienceEntry(pdf, exp, fontSize, r, g, b)
-		}
+	if err := writeContactLine(pdf, data.PersonalInfo, 10); err != nil {
+		return nil, err
 	}
+	pdf.Ln(1)
 
-	if len(data.Education) > 0 {
-		pdf.Ln(3)
-		drawSectionHeader(pdf, "Education", r, g, b)
-		for _, edu := range data.Education {
-			pdf.SetFont("Helvetica", "B", fontSize)
-			pdf.SetTextColor(40, 40, 40)
-			pdf.CellFormat(0, 5, fmt.Sprintf("%s %s — %s", edu.Degree, edu.Field, edu.Institution), "", 1, "L", false, 0, "")
-			meta := joinNonEmpty([]string{formatDateRange(edu.StartDate, edu.EndDate, false), edu.GPA}, " | ")
-			if meta != "" {
-				pdf.SetFont("Helvetica", "I", 9)
-				pdf.SetTextColor(100, 100, 100)
-				pdf.CellFormat(0, 4, meta, "", 1, "L", false, 0, "")
-			}
-		}
-	}
-
-	if len(data.Skills) > 0 {
-		pdf.Ln(3)
-		drawSectionHeader(pdf, "Skills", r, g, b)
-		pdf.SetFont("Helvetica", "", fontSize)
-		pdf.SetTextColor(40, 40, 40)
-		pdf.MultiCell(0, 5, strings.Join(data.Skills, ", "), "", "L", false)
-	}
-
-	if len(data.Projects) > 0 {
-		pdf.Ln(3)
-		drawSectionHeader(pdf, "Projects", r, g, b)
-		for _, proj := range data.Projects {
-			pdf.SetFont("Helvetica", "B", fontSize)
-			pdf.CellFormat(0, 5, proj.Name, "", 1, "L", false, 0, "")
-			if proj.Technologies != "" {
-				pdf.SetFont("Helvetica", "I", 9)
-				pdf.SetTextColor(100, 100, 100)
-				pdf.CellFormat(0, 4, proj.Technologies, "", 1, "L", false, 0, "")
-			}
-			pdf.SetFont("Helvetica", "", fontSize)
-			pdf.SetTextColor(40, 40, 40)
-			pdf.MultiCell(0, 5, proj.Description, "", "L", false)
-		}
-	}
+	renderEnabledSections(pdf, data, pdfSectionStyle{
+		fontSize:    fontSize,
+		primaryR:    r,
+		primaryG:    g,
+		primaryB:    b,
+		align:       "L",
+		expMetaSep:  " | ",
+		eduMetaSep:  " | ",
+		eduTitleSep: " - ",
+		certMetaSep: " | ",
+		drawHeader: func(title string) {
+			pdf.Ln(3)
+			drawSectionHeader(pdf, title, r, g, b)
+		},
+	})
 
 	var buf bytes.Buffer
 	if err := pdf.Output(&buf); err != nil {
@@ -113,7 +73,7 @@ func generateModernPDF(data models.ResumeData) ([]byte, error) {
 	pdf.SetXY(8, 15)
 	pdf.SetFont("Helvetica", "B", 16)
 	pdf.SetTextColor(255, 255, 255)
-	lines := pdf.SplitText(data.PersonalInfo.FullName, 54)
+	lines := pdf.SplitText(pdfSafeText(data.PersonalInfo.FullName), 54)
 	for _, line := range lines {
 		pdf.CellFormat(54, 7, line, "", 1, "L", false, 0, "")
 		pdf.SetX(8)
@@ -123,57 +83,45 @@ func generateModernPDF(data models.ResumeData) ([]byte, error) {
 	pdf.SetXY(8, pdf.GetY()+8)
 	for _, item := range []string{data.PersonalInfo.Email, data.PersonalInfo.Phone, data.PersonalInfo.Location} {
 		if item != "" {
-			pdf.CellFormat(54, 4, item, "", 1, "L", false, 0, "")
+			pdf.CellFormat(54, 4, pdfSafeText(item), "", 1, "L", false, 0, "")
 			pdf.SetX(8)
 		}
 	}
 
-	if len(data.Skills) > 0 {
+	if data.IsSectionEnabled(models.SectionSkills) && len(data.Skills) > 0 {
 		pdf.SetXY(8, pdf.GetY()+10)
 		pdf.SetFont("Helvetica", "B", 11)
-		pdf.CellFormat(54, 6, "Skills", "", 1, "L", false, 0, "")
+		pdf.SetTextColor(255, 255, 255)
+		pdf.CellFormat(54, 6, data.SectionTitle(models.SectionSkills), "", 1, "L", false, 0, "")
 		pdf.SetFont("Helvetica", "", 9)
 		for _, skill := range data.Skills {
 			pdf.SetX(8)
-			pdf.CellFormat(54, 4, "• "+skill, "", 1, "L", false, 0, "")
+			pdf.CellFormat(54, 4, "- "+pdfSafeText(skill), "", 1, "L", false, 0, "")
 		}
 	}
 
 	pdf.SetXY(78, 15)
-	pdf.SetFont("Helvetica", "B", 12)
-	pdf.SetTextColor(r, g, b)
-	pdf.CellFormat(0, 7, "Summary", "", 1, "L", false, 0, "")
-	pdf.SetX(78)
-	pdf.SetFont("Helvetica", "", fontSize)
-	pdf.SetTextColor(40, 40, 40)
-	pdf.MultiCell(120, 5, data.PersonalInfo.Summary, "", "L", false)
-
-	if len(data.Experience) > 0 {
-		pdf.SetXY(78, pdf.GetY()+6)
-		pdf.SetFont("Helvetica", "B", 12)
-		pdf.SetTextColor(r, g, b)
-		pdf.CellFormat(0, 7, "Experience", "", 1, "L", false, 0, "")
-		for _, exp := range data.Experience {
-			pdf.SetX(78)
-			writeExperienceEntry(pdf, exp, fontSize, r, g, b)
-		}
-	}
-
-	if len(data.Education) > 0 {
-		pdf.SetXY(78, pdf.GetY()+4)
-		pdf.SetFont("Helvetica", "B", 12)
-		pdf.SetTextColor(r, g, b)
-		pdf.CellFormat(0, 7, "Education", "", 1, "L", false, 0, "")
-		for _, edu := range data.Education {
-			pdf.SetX(78)
-			pdf.SetFont("Helvetica", "B", fontSize)
-			pdf.SetTextColor(40, 40, 40)
-			pdf.CellFormat(0, 5, fmt.Sprintf("%s %s", edu.Degree, edu.Field), "", 1, "L", false, 0, "")
-			pdf.SetX(78)
-			pdf.SetFont("Helvetica", "", fontSize-1)
-			pdf.CellFormat(0, 4, edu.Institution, "", 1, "L", false, 0, "")
-		}
-	}
+	renderEnabledSections(pdf, data, pdfSectionStyle{
+		fontSize:    fontSize,
+		primaryR:    r,
+		primaryG:    g,
+		primaryB:    b,
+		contentX:    78,
+		align:       "L",
+		expMetaSep:  " | ",
+		eduMetaSep:  " | ",
+		eduTitleSep: " - ",
+		certMetaSep: " | ",
+		skipTypes: map[models.SectionType]bool{
+			models.SectionSkills: true,
+		},
+		drawHeader: func(title string) {
+			pdf.SetXY(78, pdf.GetY()+6)
+			pdf.SetFont("Helvetica", "B", 12)
+			pdf.SetTextColor(r, g, b)
+			pdf.CellFormat(0, 7, pdfSafeText(title), "", 1, "L", false, 0, "")
+		},
+	})
 
 	var buf bytes.Buffer
 	if err := pdf.Output(&buf); err != nil {
@@ -194,70 +142,33 @@ func generateMinimalPDF(data models.ResumeData) ([]byte, error) {
 
 	pdf.SetFont("Helvetica", "B", 20)
 	pdf.SetTextColor(20, 20, 20)
-	pdf.CellFormat(0, 10, data.PersonalInfo.FullName, "", 1, "C", false, 0, "")
+	pdf.CellFormat(0, 10, pdfSafeText(data.PersonalInfo.FullName), "", 1, "C", false, 0, "")
 
 	pdf.SetFont("Helvetica", "", 9)
 	pdf.SetTextColor(120, 120, 120)
-	contact := joinNonEmpty([]string{data.PersonalInfo.Email, data.PersonalInfo.Phone, data.PersonalInfo.Location}, "  ·  ")
-	pdf.CellFormat(0, 5, contact, "", 1, "C", false, 0, "")
+	contact := joinNonEmpty([]string{data.PersonalInfo.Email, data.PersonalInfo.Phone, data.PersonalInfo.Location}, " | ")
+	pdf.CellFormat(0, 5, pdfSafeText(contact), "", 1, "C", false, 0, "")
 	pdf.Ln(8)
 
 	pdf.SetDrawColor(200, 200, 200)
 	pdf.Line(25, pdf.GetY(), 185, pdf.GetY())
 	pdf.Ln(6)
 
-	pdf.SetFont("Helvetica", "", fontSize)
-	pdf.SetTextColor(50, 50, 50)
-	pdf.MultiCell(0, 5, data.PersonalInfo.Summary, "", "C", false)
-
-	for _, section := range []struct {
-		title string
-		fn    func()
-	}{
-		{"EXPERIENCE", func() {
-			for _, exp := range data.Experience {
-				pdf.SetFont("Helvetica", "B", fontSize)
-				pdf.CellFormat(0, 5, exp.Position, "", 1, "C", false, 0, "")
-				pdf.SetFont("Helvetica", "", fontSize-1)
-				pdf.SetTextColor(100, 100, 100)
-				pdf.CellFormat(0, 4, fmt.Sprintf("%s · %s", exp.Company, formatDateRange(exp.StartDate, exp.EndDate, exp.Current)), "", 1, "C", false, 0, "")
-				pdf.SetTextColor(50, 50, 50)
-				pdf.MultiCell(0, 5, exp.Description, "", "C", false)
-				pdf.Ln(2)
-			}
-		}},
-		{"EDUCATION", func() {
-			for _, edu := range data.Education {
-				pdf.SetFont("Helvetica", "B", fontSize)
-				pdf.CellFormat(0, 5, fmt.Sprintf("%s %s", edu.Degree, edu.Field), "", 1, "C", false, 0, "")
-				pdf.SetFont("Helvetica", "", fontSize-1)
-				pdf.SetTextColor(100, 100, 100)
-				pdf.CellFormat(0, 4, edu.Institution, "", 1, "C", false, 0, "")
-				pdf.SetTextColor(50, 50, 50)
-				pdf.Ln(2)
-			}
-		}},
-		{"SKILLS", func() {
-			pdf.SetFont("Helvetica", "", fontSize)
-			pdf.MultiCell(0, 5, strings.Join(data.Skills, "  ·  "), "", "C", false)
-		}},
-	} {
-		if section.title == "EXPERIENCE" && len(data.Experience) == 0 {
-			continue
-		}
-		if section.title == "EDUCATION" && len(data.Education) == 0 {
-			continue
-		}
-		if section.title == "SKILLS" && len(data.Skills) == 0 {
-			continue
-		}
-		pdf.Ln(4)
-		pdf.SetFont("Helvetica", "B", 8)
-		pdf.SetTextColor(150, 150, 150)
-		pdf.CellFormat(0, 5, section.title, "", 1, "C", false, 0, "")
-		pdf.Ln(2)
-		section.fn()
-	}
+	renderEnabledSections(pdf, data, pdfSectionStyle{
+		fontSize:    fontSize,
+		align:       "C",
+		expMetaSep:  " | ",
+		eduMetaSep:  " | ",
+		eduTitleSep: " - ",
+		certMetaSep: " | ",
+		drawHeader: func(title string) {
+			pdf.Ln(4)
+			pdf.SetFont("Helvetica", "B", 8)
+			pdf.SetTextColor(150, 150, 150)
+			pdf.CellFormat(0, 5, strings.ToUpper(title), "", 1, "C", false, 0, "")
+			pdf.Ln(2)
+		},
+	})
 
 	var buf bytes.Buffer
 	if err := pdf.Output(&buf); err != nil {
@@ -269,30 +180,52 @@ func generateMinimalPDF(data models.ResumeData) ([]byte, error) {
 func drawSectionHeader(pdf *gofpdf.Fpdf, title string, r, g, b int) {
 	pdf.SetFont("Helvetica", "B", 12)
 	pdf.SetTextColor(r, g, b)
-	pdf.CellFormat(0, 7, title, "", 1, "L", false, 0, "")
+	pdf.CellFormat(0, 7, pdfSafeText(title), "", 1, "L", false, 0, "")
 	y := pdf.GetY()
 	pdf.SetDrawColor(r, g, b)
 	pdf.Line(20, y, 190, y)
 	pdf.Ln(2)
 }
 
-func writeExperienceEntry(pdf *gofpdf.Fpdf, exp models.Experience, fontSize float64, r, g, b int) {
-	pdf.SetFont("Helvetica", "B", fontSize)
-	pdf.SetTextColor(40, 40, 40)
-	pdf.CellFormat(0, 5, fmt.Sprintf("%s — %s", exp.Position, exp.Company), "", 1, "L", false, 0, "")
-	meta := joinNonEmpty([]string{formatDateRange(exp.StartDate, exp.EndDate, exp.Current), exp.Location}, " | ")
+func writeExperienceEntry(pdf *gofpdf.Fpdf, exp models.Experience, fontSize float64, r, g, b int, metaSep string, contentX, width float64) {
+	if metaSep == "" {
+		metaSep = " | "
+	}
+	if width <= 0 {
+		width = contentWidth(pdf)
+	}
+	resetX := func() {
+		if contentX > 0 {
+			pdf.SetX(contentX)
+		}
+	}
+
+	resetX()
+	role := strings.TrimSpace(exp.Position)
+	if exp.Company != "" {
+		if role != "" {
+			role += " | "
+		}
+		role += exp.Company
+	}
+	if role != "" {
+		pdf.SetFont("Helvetica", "B", fontSize)
+		pdf.SetTextColor(40, 40, 40)
+		pdf.MultiCell(width, 5, pdfSafeText(role), "", "L", false)
+	}
+
+	meta := joinNonEmpty([]string{formatDateRange(exp.StartDate, exp.EndDate, exp.Current), exp.Location}, metaSep)
 	if meta != "" {
-		pdf.SetFont("Helvetica", "I", 9)
-		pdf.SetTextColor(100, 100, 100)
-		pdf.CellFormat(0, 4, meta, "", 1, "L", false, 0, "")
+		resetX()
+		pdf.SetFont("Helvetica", "", 10)
+		pdf.SetTextColor(102, 102, 102)
+		pdf.MultiCell(width, 4, pdfSafeText(meta), "", "L", false)
 	}
 	if strings.TrimSpace(exp.CompanyDescription) != "" {
-		pdf.SetFont("Helvetica", "I", fontSize-1)
-		if fontSize-1 < 8 {
-			pdf.SetFont("Helvetica", "I", 8)
-		}
-		pdf.SetTextColor(90, 90, 90)
-		pdf.MultiCell(0, 4, stripRichMarkup(exp.CompanyDescription), "", "L", false)
+		resetX()
+		pdf.SetFont("Helvetica", "I", 9)
+		pdf.SetTextColor(85, 85, 85)
+		pdf.MultiCell(width, 4, pdfSafeText(stripRichMarkup(exp.CompanyDescription)), "", "L", false)
 	}
 	pdf.SetFont("Helvetica", "", fontSize)
 	pdf.SetTextColor(60, 60, 60)
@@ -301,10 +234,16 @@ func writeExperienceEntry(pdf *gofpdf.Fpdf, exp models.Experience, fontSize floa
 		if line == "" {
 			continue
 		}
-		pdf.CellFormat(4, 4, "•", "", 0, "L", false, 0, "")
-		pdf.MultiCell(0, 4, stripRichMarkup(line), "", "L", false)
+		resetX()
+		pdf.MultiCell(width, 4, pdfSafeText("- "+stripRichMarkup(line)), "", "L", false)
 	}
-	pdf.Ln(1)
+	pdf.Ln(2)
+}
+
+func contentWidth(pdf *gofpdf.Fpdf) float64 {
+	pageW, _ := pdf.GetPageSize()
+	_, _, right, _ := pdf.GetMargins()
+	return pageW - pdf.GetX() - right
 }
 
 func joinNonEmpty(parts []string, sep string) string {
@@ -321,13 +260,13 @@ func formatDateRange(start, end string, current bool) string {
 	start = formatMonth(start)
 	if current {
 		if start != "" {
-			return start + " — Present"
+			return start + " - Present"
 		}
 		return "Present"
 	}
 	end = formatMonth(end)
 	if start != "" && end != "" {
-		return start + " — " + end
+		return start + " - " + end
 	}
 	return start + end
 }

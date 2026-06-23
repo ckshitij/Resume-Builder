@@ -13,13 +13,20 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /server ./cmd/server
 
 FROM alpine:3.20
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache \
+    ca-certificates \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ttf-freefont
+
+ENV CHROMIUM_PATH=/usr/bin/chromium-browser
+ENV PORT=8080
 
 WORKDIR /app
 
 COPY --from=builder /server .
-
-ENV PORT=8080
 
 EXPOSE 8080
 

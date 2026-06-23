@@ -14,7 +14,11 @@ import (
 	"github.com/resume-builder/backend/internal/models"
 )
 
-func GeneratePDF(data models.ResumeData) ([]byte, error) {
+func GeneratePDF(data models.ResumeData, html string) ([]byte, error) {
+	if strings.TrimSpace(html) != "" {
+		return GeneratePDFFromHTML(html)
+	}
+	// Legacy fallback for GET /api/resumes/{id}/export/pdf without HTML.
 	switch data.EffectiveTemplate() {
 	case models.TemplateModern:
 		return generateModernPDF(data)
@@ -36,129 +40,35 @@ func generateATSPDF(data models.ResumeData) ([]byte, error) {
 	pdf := gofpdf.New("P", "mm", "Letter", "")
 	pdf.SetMargins(15, 15, 15)
 	pdf.AddPage()
-	pdf.SetFont("Helvetica", "", 11)
 
 	pi := data.PersonalInfo
+	fontSize := float64(data.Customization.FontSize)
+	if fontSize < 9 {
+		fontSize = 11
+	}
+
 	pdf.SetFont("Helvetica", "B", 16)
-	pdf.CellFormat(0, 8, pi.FullName, "", 1, "L", false, 0, "")
+	pdf.SetTextColor(26, 26, 26)
+	pdf.CellFormat(0, 8, pdfSafeText(pi.FullName), "", 1, "L", false, 0, "")
 
 	pdf.SetFont("Helvetica", "", 10)
-	contact := joinNonEmpty([]string{pi.Email, pi.Phone, pi.Location, pi.Website, pi.LinkedIn, pi.GitHub}, " | ")
-	pdf.MultiCell(0, 5, contact, "", "L", false)
-	pdf.Ln(4)
-
-	for _, section := range data.EnabledSections() {
-		switch section.Type {
-		case models.SectionSummary:
-			if pi.Summary == "" {
-				continue
-			}
-			drawATSSection(pdf, section.Title)
-			pdf.SetFont("Helvetica", "", 11)
-			pdf.MultiCell(0, 5, pi.Summary, "", "L", false)
-
-		case models.SectionExperience:
-			if len(data.Experience) == 0 {
-				continue
-			}
-			drawATSSection(pdf, section.Title)
-			for _, exp := range data.Experience {
-				pdf.SetFont("Helvetica", "B", 11)
-				pdf.CellFormat(0, 5, fmt.Sprintf("%s | %s", exp.Position, exp.Company), "", 1, "L", false, 0, "")
-				meta := joinNonEmpty([]string{formatDateRange(exp.StartDate, exp.EndDate, exp.Current), exp.Location}, " | ")
-				if meta != "" {
-					pdf.SetFont("Helvetica", "", 10)
-					pdf.CellFormat(0, 4, meta, "", 1, "L", false, 0, "")
-				}
-				if strings.TrimSpace(exp.CompanyDescription) != "" {
-					pdf.SetFont("Helvetica", "I", 9)
-					pdf.MultiCell(0, 4, stripRichMarkup(exp.CompanyDescription), "", "L", false)
-				}
-				writeBulletLines(pdf, exp.Description, 11)
-				pdf.Ln(2)
-			}
-
-		case models.SectionEducation:
-			if len(data.Education) == 0 {
-				continue
-			}
-			drawATSSection(pdf, section.Title)
-			for _, edu := range data.Education {
-				pdf.SetFont("Helvetica", "B", 11)
-				pdf.CellFormat(0, 5, fmt.Sprintf("%s %s | %s", edu.Degree, edu.Field, edu.Institution), "", 1, "L", false, 0, "")
-				meta := joinNonEmpty([]string{formatDateRange(edu.StartDate, edu.EndDate, false), edu.GPA}, " | ")
-				if meta != "" {
-					pdf.SetFont("Helvetica", "", 10)
-					pdf.CellFormat(0, 4, meta, "", 1, "L", false, 0, "")
-				}
-			}
-
-		case models.SectionSkills:
-			if len(data.Skills) == 0 {
-				continue
-			}
-			drawATSSection(pdf, section.Title)
-			pdf.SetFont("Helvetica", "", 11)
-			pdf.MultiCell(0, 5, strings.Join(data.Skills, ", "), "", "L", false)
-
-		case models.SectionProjects:
-			if len(data.Projects) == 0 {
-				continue
-			}
-			drawATSSection(pdf, section.Title)
-			for _, proj := range data.Projects {
-				title := proj.Name
-				if proj.URL != "" {
-					title += " | " + proj.URL
-				}
-				pdf.SetFont("Helvetica", "B", 11)
-				pdf.CellFormat(0, 5, title, "", 1, "L", false, 0, "")
-				if proj.Technologies != "" {
-					pdf.SetFont("Helvetica", "", 10)
-					pdf.CellFormat(0, 4, proj.Technologies, "", 1, "L", false, 0, "")
-				}
-				pdf.SetFont("Helvetica", "", 11)
-				pdf.MultiCell(0, 5, proj.Description, "", "L", false)
-				pdf.Ln(2)
-			}
-
-		case models.SectionCertifications:
-			if len(data.Certifications) == 0 {
-				continue
-			}
-			drawATSSection(pdf, section.Title)
-			for _, cert := range data.Certifications {
-				pdf.SetFont("Helvetica", "B", 11)
-				pdf.CellFormat(0, 5, fmt.Sprintf("%s | %s", cert.Name, cert.Issuer), "", 1, "L", false, 0, "")
-				if cert.Date != "" {
-					pdf.SetFont("Helvetica", "", 10)
-					pdf.CellFormat(0, 4, cert.Date, "", 1, "L", false, 0, "")
-				}
-			}
-
-		case models.SectionLanguages:
-			if len(data.Languages) == 0 {
-				continue
-			}
-			drawATSSection(pdf, section.Title)
-			var parts []string
-			for _, lang := range data.Languages {
-				parts = append(parts, fmt.Sprintf("%s (%s)", lang.Name, lang.Proficiency))
-			}
-			pdf.SetFont("Helvetica", "", 11)
-			pdf.MultiCell(0, 5, strings.Join(parts, ", "), "", "L", false)
-
-		case models.SectionCustom:
-			for _, block := range data.CustomSections {
-				if block.SectionID != section.ID || block.Content == "" {
-					continue
-				}
-				drawATSSection(pdf, section.Title)
-				pdf.SetFont("Helvetica", "", 11)
-				pdf.MultiCell(0, 5, block.Content, "", "L", false)
-			}
-		}
+	pdf.SetTextColor(40, 40, 40)
+	if err := writeContactLine(pdf, pi, 10); err != nil {
+		return nil, err
 	}
+	pdf.Ln(1)
+
+	renderEnabledSections(pdf, data, pdfSectionStyle{
+		fontSize:    fontSize,
+		align:       "L",
+		expMetaSep:  " | ",
+		eduMetaSep:  " | ",
+		eduTitleSep: " | ",
+		certMetaSep: " | ",
+		drawHeader: func(title string) {
+			drawATSSection(pdf, title)
+		},
+	})
 
 	var buf bytes.Buffer
 	if err := pdf.Output(&buf); err != nil {
@@ -170,23 +80,11 @@ func generateATSPDF(data models.ResumeData) ([]byte, error) {
 func drawATSSection(pdf *gofpdf.Fpdf, title string) {
 	pdf.Ln(3)
 	pdf.SetFont("Helvetica", "B", 12)
-	pdf.CellFormat(0, 6, strings.ToUpper(title), "", 1, "L", false, 0, "")
+	pdf.CellFormat(0, 6, pdfSafeText(strings.ToUpper(title)), "", 1, "L", false, 0, "")
 	y := pdf.GetY()
 	pdf.SetDrawColor(0, 0, 0)
 	pdf.Line(15, y, 200, y)
 	pdf.Ln(2)
-}
-
-func writeBulletLines(pdf *gofpdf.Fpdf, text string, fontSize float64) {
-	pdf.SetFont("Helvetica", "", fontSize)
-	for _, line := range strings.Split(text, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		pdf.CellFormat(4, 4, "-", "", 0, "L", false, 0, "")
-		pdf.MultiCell(0, 4, stripRichMarkup(line), "", "L", false)
-	}
 }
 
 func buildDOCXBody(data models.ResumeData) string {
@@ -229,8 +127,15 @@ func buildDOCXBody(data models.ResumeData) string {
 			}
 			writePara(strings.ToUpper(section.Title), true, 12)
 			for _, exp := range data.Experience {
-				writePara(fmt.Sprintf("%s | %s", exp.Position, exp.Company), true, 11)
-				meta := joinNonEmpty([]string{formatDateRange(exp.StartDate, exp.EndDate, exp.Current), exp.Location}, " | ")
+				role := exp.Position
+				if exp.Company != "" {
+					if role != "" {
+						role += " · "
+					}
+					role += exp.Company
+				}
+				writePara(role, true, 11)
+				meta := joinNonEmpty([]string{formatDateRange(exp.StartDate, exp.EndDate, exp.Current), exp.Location}, " · ")
 				writePara(meta, false, 10)
 				if strings.TrimSpace(exp.CompanyDescription) != "" {
 					writeItalicPara(stripRichMarkup(exp.CompanyDescription), 9)
@@ -238,7 +143,7 @@ func buildDOCXBody(data models.ResumeData) string {
 				for _, line := range strings.Split(exp.Description, "\n") {
 					line = strings.TrimSpace(line)
 					if line != "" {
-						writePara("- "+stripRichMarkup(line), false, 11)
+						writePara("• "+stripRichMarkup(line), false, 11)
 					}
 				}
 			}
@@ -249,7 +154,7 @@ func buildDOCXBody(data models.ResumeData) string {
 			writePara(strings.ToUpper(section.Title), true, 12)
 			for _, edu := range data.Education {
 				writePara(fmt.Sprintf("%s %s | %s", edu.Degree, edu.Field, edu.Institution), true, 11)
-				writePara(joinNonEmpty([]string{formatDateRange(edu.StartDate, edu.EndDate, false), edu.GPA}, " | "), false, 10)
+				writePara(joinNonEmpty([]string{formatDateRange(edu.StartDate, edu.EndDate, false), edu.Location, edu.GPA}, " | "), false, 10)
 			}
 		case models.SectionSkills:
 			if len(data.Skills) == 0 {
@@ -277,8 +182,12 @@ func buildDOCXBody(data models.ResumeData) string {
 			}
 			writePara(strings.ToUpper(section.Title), true, 12)
 			for _, cert := range data.Certifications {
-				writePara(fmt.Sprintf("%s | %s", cert.Name, cert.Issuer), true, 11)
-				writePara(cert.Date, false, 10)
+				title := cert.Name
+				if cert.URL != "" {
+					title += " | " + cert.URL
+				}
+				writePara(title, true, 11)
+				writePara(joinNonEmpty([]string{cert.Issuer, cert.Date}, " · "), false, 10)
 			}
 		case models.SectionLanguages:
 			if len(data.Languages) == 0 {

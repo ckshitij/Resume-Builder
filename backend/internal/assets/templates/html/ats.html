@@ -53,7 +53,7 @@
   <h2>{{.Title}}</h2>
   {{range $.Experience}}
   <div class="entry">
-    <div class="entry-header">{{.Position}} | {{.Company}}</div>
+    <div class="entry-header"><strong>{{.Position}}</strong>{{if and .Position .Company}} · {{end}}{{if .Company}}{{.Company}}{{end}}</div>
     <div class="entry-sub">{{.Meta}}</div>
     {{if .CompanyDescription}}<div class="entry-company-desc">{{.CompanyDescription}}</div>{{end}}
     <ul>{{range .Bullets}}<li>{{.}}</li>{{end}}</ul>

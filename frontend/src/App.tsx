@@ -13,6 +13,7 @@ import { Toast } from './components/Toast';
 import { useResumeEditor, type SaveEvent } from './hooks/useResumeEditor';
 import type { Resume } from './types/resume';
 import { atsScore, runATSChecks } from './utils/ats';
+import { buildResumePrintHtml } from './utils/exportPrintHtml';
 import './App.css';
 
 type SidebarTab = 'sections' | 'design' | 'ats' | 'saved';
@@ -62,8 +63,10 @@ export default function App() {
     setExporting(format);
     try {
       const name = editor.data.personalInfo.fullName || editor.title || 'resume';
-      if (format === 'pdf') await api.exportPDF(editor.data, name);
-      else await api.exportDOCX(editor.data, name);
+      if (format === 'pdf') {
+        const html = buildResumePrintHtml(editor.data);
+        await api.exportPDF(editor.data, html, name);
+      } else await api.exportDOCX(editor.data, name);
       setToast({ message: `${format.toUpperCase()} downloaded successfully`, type: 'success' });
     } catch (e) {
       setToast({ message: e instanceof Error ? e.message : 'Export failed', type: 'error' });

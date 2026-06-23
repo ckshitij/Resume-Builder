@@ -126,7 +126,7 @@ func (h *ResumeHandler) ExportPDF(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "resume not found")
 		return
 	}
-	h.servePDF(w, resume.Data, resume.Title)
+	h.servePDF(w, resume.Data, "", resume.Title)
 }
 
 func (h *ResumeHandler) ExportDOCX(w http.ResponseWriter, r *http.Request) {
@@ -144,12 +144,19 @@ func (h *ResumeHandler) ExportDOCX(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ResumeHandler) ExportPDFFromData(w http.ResponseWriter, r *http.Request) {
-	var data models.ResumeData
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+	var req struct {
+		Data models.ResumeData `json:"data"`
+		HTML string            `json:"html"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	h.servePDF(w, data, data.PersonalInfo.FullName)
+	if strings.TrimSpace(req.HTML) == "" {
+		writeError(w, http.StatusBadRequest, "html is required for PDF export")
+		return
+	}
+	h.servePDF(w, req.Data, req.HTML, req.Data.PersonalInfo.FullName)
 }
 
 func (h *ResumeHandler) ExportDOCXFromData(w http.ResponseWriter, r *http.Request) {
@@ -161,8 +168,8 @@ func (h *ResumeHandler) ExportDOCXFromData(w http.ResponseWriter, r *http.Reques
 	h.serveDOCX(w, data, data.PersonalInfo.FullName)
 }
 
-func (h *ResumeHandler) servePDF(w http.ResponseWriter, data models.ResumeData, filename string) {
-	pdfBytes, err := export.GeneratePDF(data)
+func (h *ResumeHandler) servePDF(w http.ResponseWriter, data models.ResumeData, html string, filename string) {
+	pdfBytes, err := export.GeneratePDF(data, html)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to generate PDF")
 		return
