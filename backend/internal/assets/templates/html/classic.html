@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: {{.FontFamily}}; font-size: {{.FontSize}}px; color: #282828; line-height: 1.5; padding: 32px; }
+    h1 { font-size: 28px; color: {{.PrimaryColor}}; margin-bottom: 6px; }
+    .contact { color: #505050; font-size: 11px; margin-bottom: 18px; }
+    .section { margin-bottom: 16px; }
+    .section-title { font-size: 13px; font-weight: 700; color: {{.PrimaryColor}}; border-bottom: 2px solid {{.PrimaryColor}}; padding-bottom: 3px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .entry-title { font-weight: 700; }
+    .entry-meta { font-size: 10px; color: #787878; font-style: italic; margin-bottom: 4px; }
+    .entry-desc { color: #3c3c3c; white-space: pre-line; }
+    .skills { color: #3c3c3c; }
+    ul { margin-left: 16px; }
+  </style>
+</head>
+<body>
+  <h1>{{.FullName}}</h1>
+  <div class="contact">{{.ContactLine}}</div>
+
+  {{if .Summary}}
+  <div class="section">
+    <div class="section-title">Summary</div>
+    <p>{{.Summary}}</p>
+  </div>
+  {{end}}
+
+  {{if .Experience}}
+  <div class="section">
+    <div class="section-title">Experience</div>
+    {{range .Experience}}
+    <div style="margin-bottom: 10px;">
+      <div class="entry-title">{{.Position}} — {{.Company}}</div>
+      <div class="entry-meta">{{.Meta}}</div>
+      <div class="entry-desc">{{.Description}}</div>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Education}}
+  <div class="section">
+    <div class="section-title">Education</div>
+    {{range .Education}}
+    <div style="margin-bottom: 8px;">
+      <div class="entry-title">{{.Degree}} {{.Field}} — {{.Institution}}</div>
+      <div class="entry-meta">{{.Meta}}</div>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Skills}}
+  <div class="section">
+    <div class="section-title">Skills</div>
+    <div class="skills">{{.SkillsLine}}</div>
+  </div>
+  {{end}}
+
+  {{if .Projects}}
+  <div class="section">
+    <div class="section-title">Projects</div>
+    {{range .Projects}}
+    <div style="margin-bottom: 8px;">
+      <div class="entry-title">{{.Name}}{{if .URL}} ({{.URL}}){{end}}</div>
+      {{if .Technologies}}<div class="entry-meta">{{.Technologies}}</div>{{end}}
+      <div class="entry-desc">{{.Description}}</div>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+</body>
+</html>

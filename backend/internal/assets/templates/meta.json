@@ -1,0 +1,26 @@
+[
+  {
+    "id": "ats",
+    "name": "ATS Optimized",
+    "description": "Single-column layout with standard headings for applicant tracking systems",
+    "atsFriendly": true
+  },
+  {
+    "id": "classic",
+    "name": "Classic",
+    "description": "Traditional single-column layout with section dividers",
+    "atsFriendly": true
+  },
+  {
+    "id": "modern",
+    "name": "Modern",
+    "description": "Two-column layout with colored sidebar",
+    "atsFriendly": false
+  },
+  {
+    "id": "minimal",
+    "name": "Minimal",
+    "description": "Clean centered typography with subtle separators",
+    "atsFriendly": false
+  }
+]

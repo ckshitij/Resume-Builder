@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: {{.FontFamily}}; font-size: {{.FontSize}}px; color: #323232; line-height: 1.6; padding: 40px 48px; text-align: center; }
+    h1 { font-size: 26px; font-weight: 700; color: #141414; margin-bottom: 6px; letter-spacing: 1px; }
+    .contact { color: #969696; font-size: 10px; margin-bottom: 20px; }
+    .divider { height: 1px; background: #c8c8c8; margin: 16px auto; width: 60%; }
+    .summary { color: #505050; max-width: 520px; margin: 0 auto 20px; }
+    .section-label { font-size: 9px; font-weight: 700; color: #969696; letter-spacing: 2px; margin: 20px 0 10px; }
+    .entry-title { font-weight: 700; }
+    .entry-meta { font-size: 10px; color: #787878; margin-bottom: 4px; }
+    .entry-desc { color: #505050; white-space: pre-line; max-width: 480px; margin: 0 auto 10px; }
+    .skills { color: #505050; }
+  </style>
+</head>
+<body>
+  <h1>{{.FullName}}</h1>
+  <div class="contact">{{.ContactLine}}</div>
+  <div class="divider"></div>
+
+  {{if .Summary}}
+  <p class="summary">{{.Summary}}</p>
+  {{end}}
+
+  {{if .Experience}}
+  <div class="section-label">EXPERIENCE</div>
+  {{range .Experience}}
+  <div style="margin-bottom: 14px;">
+    <div class="entry-title">{{.Position}}</div>
+    <div class="entry-meta">{{.Company}} · {{.Meta}}</div>
+    <div class="entry-desc">{{.Description}}</div>
+  </div>
+  {{end}}
+  {{end}}
+
+  {{if .Education}}
+  <div class="section-label">EDUCATION</div>
+  {{range .Education}}
+  <div style="margin-bottom: 10px;">
+    <div class="entry-title">{{.Degree}} {{.Field}}</div>
+    <div class="entry-meta">{{.Institution}}</div>
+  </div>
+  {{end}}
+  {{end}}
+
+  {{if .Skills}}
+  <div class="section-label">SKILLS</div>
+  <div class="skills">{{.SkillsLine}}</div>
+  {{end}}
+
+  {{if .Projects}}
+  <div class="section-label">PROJECTS</div>
+  {{range .Projects}}
+  <div style="margin-bottom: 10px;">
+    <div class="entry-title">{{.Name}}</div>
+    <div class="entry-desc">{{.Description}}</div>
+  </div>
+  {{end}}
+  {{end}}
+</body>
+</html>

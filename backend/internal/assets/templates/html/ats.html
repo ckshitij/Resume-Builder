@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11pt;
+      color: #000000;
+      line-height: 1.4;
+      padding: 0.5in;
+      max-width: 8.5in;
+    }
+    h1 { font-size: 18pt; font-weight: 700; margin-bottom: 4pt; }
+    .contact { font-size: 10pt; margin-bottom: 12pt; }
+    .contact span::after { content: " | "; }
+    .contact span:last-child::after { content: ""; }
+    h2 {
+      font-size: 12pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      border-bottom: 1px solid #000;
+      margin: 12pt 0 6pt;
+      padding-bottom: 2pt;
+    }
+    .entry { margin-bottom: 8pt; }
+    .entry-header { font-weight: 700; }
+    .entry-sub { font-size: 10pt; margin-bottom: 2pt; }
+    ul { margin-left: 18pt; margin-top: 2pt; }
+    li { margin-bottom: 2pt; }
+    .skills-line { margin-top: 2pt; }
+    p { margin-bottom: 4pt; }
+  </style>
+</head>
+<body>
+  <h1>{{.FullName}}</h1>
+  <div class="contact">
+    {{range .ContactItems}}<span>{{.}}</span>{{end}}
+  </div>
+
+  {{range .OrderedSections}}
+  {{if eq .Type "summary"}}
+  {{if $.Summary}}
+  <h2>{{.Title}}</h2>
+  <p>{{$.Summary}}</p>
+  {{end}}
+  {{end}}
+
+  {{if eq .Type "experience"}}
+  {{if $.Experience}}
+  <h2>{{.Title}}</h2>
+  {{range $.Experience}}
+  <div class="entry">
+    <div class="entry-header">{{.Position}} | {{.Company}}</div>
+    <div class="entry-sub">{{.Meta}}</div>
+    <ul>{{range .Bullets}}<li>{{.}}</li>{{end}}</ul>
+  </div>
+  {{end}}
+  {{end}}
+  {{end}}
+
+  {{if eq .Type "education"}}
+  {{if $.Education}}
+  <h2>{{.Title}}</h2>
+  {{range $.Education}}
+  <div class="entry">
+    <div class="entry-header">{{.Degree}} {{.Field}} | {{.Institution}}</div>
+    <div class="entry-sub">{{.Meta}}</div>
+  </div>
+  {{end}}
+  {{end}}
+  {{end}}
+
+  {{if eq .Type "skills"}}
+  {{if $.Skills}}
+  <h2>{{.Title}}</h2>
+  <div class="skills-line">{{.SkillsLine}}</div>
+  {{end}}
+  {{end}}
+
+  {{if eq .Type "projects"}}
+  {{if $.Projects}}
+  <h2>{{.Title}}</h2>
+  {{range $.Projects}}
+  <div class="entry">
+    <div class="entry-header">{{.Name}}{{if .URL}} | {{.URL}}{{end}}</div>
+    {{if .Technologies}}<div class="entry-sub">{{.Technologies}}</div>{{end}}
+    <p>{{.Description}}</p>
+  </div>
+  {{end}}
+  {{end}}
+  {{end}}
+
+  {{if eq .Type "certifications"}}
+  {{if $.Certifications}}
+  <h2>{{.Title}}</h2>
+  {{range $.Certifications}}
+  <div class="entry">
+    <div class="entry-header">{{.Name}} | {{.Issuer}}</div>
+    <div class="entry-sub">{{.Meta}}</div>
+  </div>
+  {{end}}
+  {{end}}
+  {{end}}
+
+  {{if eq .Type "languages"}}
+  {{if $.Languages}}
+  <h2>{{.Title}}</h2>
+  <div class="skills-line">{{.LanguagesLine}}</div>
+  {{end}}
+  {{end}}
+
+  {{if eq .Type "custom"}}
+  {{range $.CustomBlocks}}
+  {{if eq .SectionID $.ID}}
+  <h2>{{$.Title}}</h2>
+  <p>{{.Content}}</p>
+  {{end}}
+  {{end}}
+  {{end}}
+  {{end}}
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: {{.FontFamily}}; font-size: {{.FontSize}}px; color: #282828; display: flex; min-height: 100vh; }
+    .sidebar { width: 220px; background: {{.PrimaryColor}}; color: #fff; padding: 28px 18px; flex-shrink: 0; }
+    .sidebar h1 { font-size: 18px; margin-bottom: 14px; line-height: 1.3; }
+    .sidebar .contact-item { font-size: 10px; margin-bottom: 5px; opacity: 0.95; }
+    .sidebar .section-title { font-size: 12px; font-weight: 700; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .sidebar ul { list-style: none; font-size: 10px; }
+    .sidebar li { margin-bottom: 4px; }
+    .sidebar li::before { content: "• "; }
+    .main { flex: 1; padding: 28px 32px; }
+    .section { margin-bottom: 18px; }
+    .section-title { font-size: 13px; font-weight: 700; color: {{.PrimaryColor}}; margin-bottom: 8px; text-transform: uppercase; }
+    .entry-title { font-weight: 700; }
+    .entry-meta { font-size: 10px; color: #787878; margin-bottom: 4px; }
+    .entry-desc { color: #3c3c3c; white-space: pre-line; }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <h1>{{.FullName}}</h1>
+    {{range .ContactItems}}<div class="contact-item">{{.}}</div>{{end}}
+    {{if .Skills}}
+    <div class="section-title">Skills</div>
+    <ul>{{range .Skills}}<li>{{.}}</li>{{end}}</ul>
+    {{end}}
+  </aside>
+  <main class="main">
+    {{if .Summary}}
+    <div class="section">
+      <div class="section-title">Summary</div>
+      <p>{{.Summary}}</p>
+    </div>
+    {{end}}
+    {{if .Experience}}
+    <div class="section">
+      <div class="section-title">Experience</div>
+      {{range .Experience}}
+      <div style="margin-bottom: 12px;">
+        <div class="entry-title">{{.Position}} — {{.Company}}</div>
+        <div class="entry-meta">{{.Meta}}</div>
+        <div class="entry-desc">{{.Description}}</div>
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+    {{if .Education}}
+    <div class="section">
+      <div class="section-title">Education</div>
+      {{range .Education}}
+      <div style="margin-bottom: 8px;">
+        <div class="entry-title">{{.Degree}} {{.Field}}</div>
+        <div class="entry-meta">{{.Institution}}</div>
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+    {{if .Projects}}
+    <div class="section">
+      <div class="section-title">Projects</div>
+      {{range .Projects}}
+      <div style="margin-bottom: 8px;">
+        <div class="entry-title">{{.Name}}</div>
+        {{if .Technologies}}<div class="entry-meta">{{.Technologies}}</div>{{end}}
+        <div class="entry-desc">{{.Description}}</div>
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+  </main>
+</body>
+</html>
