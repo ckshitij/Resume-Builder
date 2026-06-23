@@ -45,6 +45,10 @@ Job applications increasingly pass through **Applicant Tracking Systems (ATS)** 
 | **Section manager** | Enable, hide, reorder, and rename sections |
 | **Add/remove blocks** | Summary, Work Experience, Education, Skills, Projects, Certifications, Languages, Custom |
 | **Per-item editing** | Add multiple jobs, degrees, projects, etc. within each section |
+| **Drag-and-drop** | Reorder sections and entries in the sidebar and editor |
+| **Rich text** | Use `*italic*` and `**bold**` in experience bullets and company descriptions |
+| **Location picker** | Country, state, and city fields with optional remote flag for work experience |
+| **Contact icons** | LinkedIn, GitHub, email, phone, and location shown with icons in preview and PDF |
 | **Auto-save** | Changes debounce and persist to the API every 2 seconds |
 | **Saved resumes** | Load and switch between previously saved resumes |
 
@@ -56,7 +60,7 @@ Job applications increasingly pass through **Applicant Tracking Systems (ATS)** 
 | **25 fonts** | ATS-safe system fonts + Google Fonts (serif, sans-serif, modern) |
 | **28 color presets** | Grouped palettes (neutrals, blues, greens, warm, purple, red) + custom hex |
 | **Font size** | Adjustable from 9pt to 14pt with live preview |
-| **PDF export** | Template-aware layout generated server-side |
+| **PDF export** | WYSIWYG — captures the live preview and prints via headless Chromium |
 | **DOCX export** | Word-compatible document built from embedded OOXML templates |
 
 ### ATS tooling
@@ -82,13 +86,14 @@ flowchart LR
 
   subgraph docker [Docker Compose]
     FE[Nginx + React]
-    BE[Go API]
+    BE[Go API + Chromium]
     DB[(PostgreSQL)]
   end
 
   UI -->|REST /api| FE
   FE -->|proxy| BE
   BE --> DB
+  Preview -->|HTML snapshot| BE
   BE -->|PDF / DOCX| UI
 ```
 
@@ -96,8 +101,9 @@ flowchart LR
 
 1. The React app calls `/api/*` (proxied to the Go backend in dev and production).
 2. Resume JSON is stored in PostgreSQL (`resumes.data` JSONB column).
-3. Export endpoints render PDF/DOCX from the resume payload using embedded Go templates.
-4. SQL migrations and document templates are **embedded in the Go binary** via `go:embed` — no external files required at runtime.
+3. **PDF export** — the frontend captures the live preview DOM, sends it as HTML with the resume data, and the backend prints it to PDF using headless Chromium (chromedp). The downloaded PDF matches the preview (fonts, icons, skill pills, rich text).
+4. **DOCX export** — generated server-side from resume JSON using embedded OOXML templates.
+5. SQL migrations and document templates are **embedded in the Go binary** via `go:embed` — no external files required at runtime.
 
 ---
 
@@ -108,7 +114,7 @@ flowchart LR
 | Frontend | React 18, TypeScript, Vite |
 | Backend | Go 1.22, chi router, pgx |
 | Database | PostgreSQL 16 |
-| PDF generation | gofpdf |
+| PDF generation | Headless Chromium (chromedp); gofpdf fallback for saved-resume GET export |
 | DOCX generation | Embedded OOXML + archive/zip |
 | Containers | Docker, Docker Compose, Nginx |
 
@@ -135,6 +141,8 @@ Stop services:
 ```bash
 docker compose down
 ```
+
+The backend image includes **Chromium** for PDF export (~600 MB). The first `docker compose up --build` may take a few minutes.
 
 Reset the database (removes all saved resumes):
 
@@ -173,6 +181,8 @@ go run ./cmd/server
 ```
 
 API listens on **:8080**. Migrations run automatically on startup from embedded SQL files.
+
+> **Note:** PDF export from the editor requires **Chromium** on the backend. The Docker image includes Chromium automatically. For local `go run` without Docker, install Chrome/Chromium and set `CHROMIUM_PATH` if needed (see [Configuration](#configuration)).
 
 ### 3. Frontend
 
@@ -227,6 +237,8 @@ The workspace has three panes:
 5. Open the **ATS** tab and aim for **80%+** before exporting.
 6. Click **PDF** or **DOCX** in the header to download.
 
+**PDF export** uses whatever you see in the live preview — including template styling, contact icons, skill pills, and rich text. Hard-refresh the browser after pulling updates if export behavior seems stale.
+
 ---
 
 ## Templates & customization
@@ -274,7 +286,7 @@ When **ATS-safe mode** is enabled, only dark accent colors and ATS-friendly font
 
 - Use the **ATS Optimized** template when applying online
 - Keep headings standard: `Professional Summary`, `Work Experience`, `Education`, `Skills`
-- Put contact info in plain text — no images or icons
+- Put contact info in plain text fields — linked URLs are fine; decorative graphics reduce parser compatibility
 - List skills as comma-separated text: `Go, TypeScript, React, PostgreSQL`
 - Format dates as `2021-01` (not `Jan 2021` or `01/2021`)
 - Write one achievement per line in experience descriptions
@@ -300,10 +312,21 @@ Base URL: `http://localhost:8080`
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/resumes/{id}/export/pdf` | Export saved resume as PDF |
+| `GET` | `/api/resumes/{id}/export/pdf` | Export saved resume as PDF (legacy gofpdf renderer) |
 | `GET` | `/api/resumes/{id}/export/docx` | Export saved resume as DOCX |
-| `POST` | `/api/resumes/export/pdf` | Export PDF from request body (no save required) |
+| `POST` | `/api/resumes/export/pdf` | Export PDF from `{ data, html }` — used by the editor (headless Chromium) |
 | `POST` | `/api/resumes/export/docx` | Export DOCX from request body (no save required) |
+
+The editor POSTs PDF exports as:
+
+```json
+{
+  "data": { /* full ResumeData object */ },
+  "html": "<!DOCTYPE html>..."
+}
+```
+
+The `html` field is a snapshot of the live preview DOM with embedded print CSS. It is required for POST PDF export.
 
 ### Metadata
 
@@ -361,7 +384,7 @@ resume-builder/
 │   ├── internal/
 │   │   ├── assets/             # go:embed migrations, HTML/DOCX templates
 │   │   ├── database/           # Connection + migration runner
-│   │   ├── export/             # PDF and DOCX generation
+│   │   ├── export/             # Chromium PDF, gofpdf fallback, DOCX generation
 │   │   ├── handlers/           # REST API handlers
 │   │   ├── models/             # Resume data types
 │   │   └── repository/         # PostgreSQL queries
@@ -375,7 +398,7 @@ resume-builder/
     │   ├── hooks/                # useResumeEditor
     │   ├── templates/            # React resume templates (preview)
     │   ├── types/                # TypeScript types
-    │   └── utils/                # ATS checks, defaults, font/color options
+    │   ├── utils/                # ATS checks, defaults, exportPrintHtml, font/color options
     ├── Dockerfile
     ├── nginx.conf                # Proxies /api to backend
     └── package.json
@@ -396,6 +419,8 @@ resume-builder/
 | `DB_PASSWORD` | `resume` | Database password |
 | `DB_NAME` | `resume_builder` | Database name |
 | `DATABASE_URL` | — | Full connection string (overrides individual DB_* vars) |
+| `CHROMIUM_PATH` | `/usr/bin/chromium-browser` (Docker) | Path to Chrome/Chromium binary for PDF export |
+| `PDF_DEVICE_SCALE_FACTOR` | `2` | Render scale for sharper PDF text (1–3). Higher = sharper but larger files |
 
 ### Frontend environment variables
 
@@ -422,14 +447,25 @@ resume-builder/
 ### Export returns an error
 
 - Ensure the resume has at least a full name in contact info
-- Check backend logs for PDF/DOCX generation errors
-- Try exporting via `POST /api/resumes/export/pdf` with the current editor JSON
+- Check backend logs: `docker compose logs backend`
+- **PDF export failed** — confirm Chromium is installed (included in the backend Docker image). For local dev, set `CHROMIUM_PATH` to your Chrome/Chromium binary
+- **PDF export failed (html required)** — hard-refresh the browser (`Cmd+Shift+R`) so the frontend sends the preview HTML snapshot
+- Rebuild after updates: `docker compose up --build -d`
 
-### Fonts look different in PDF vs preview
+### PDF does not match the preview
 
-- The browser preview uses web fonts (Google Fonts) for visual design
-- PDF export uses standard PDF fonts (Helvetica family) for maximum compatibility
-- Use the **ATS Optimized** template when PDF fidelity to preview matters less than parser compatibility
+- The editor uses headless Chromium and should match the live preview closely
+- If the PDF looks like plain text with comma-separated skills (~7–8 KB file size), the old gofpdf path ran — rebuild frontend and backend, then hard-refresh
+- If content is cut mid-section, ensure you are on the latest build (print CSS handles page breaks and multi-page flow)
+
+### PDF text looks blurry or low resolution
+
+- Default render scale is 2× (`PDF_DEVICE_SCALE_FACTOR=2`). Increase to `2.5` or `3` in backend environment if needed
+- DOCX export uses a separate plain-text renderer and may differ from the preview
+
+### DOCX looks different from PDF
+
+- DOCX is generated from resume JSON, not the preview HTML. Formatting may differ from PDF; use PDF for visual fidelity and DOCX for editing in Word
 
 ---
 
