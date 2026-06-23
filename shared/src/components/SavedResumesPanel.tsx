@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { api } from '../api/client';
+import type { ResumeRepository } from '../storage/repository';
 import type { Resume } from '../types/resume';
 
 interface Props {
   resumes: Resume[];
   activeResumeId: string | null;
+  repository: ResumeRepository;
   onLoad: (resume: Resume) => void;
   onDeleted: (id: string) => void;
   onError: (message: string) => void;
@@ -13,6 +14,7 @@ interface Props {
 export function SavedResumesPanel({
   resumes,
   activeResumeId,
+  repository,
   onLoad,
   onDeleted,
   onError,
@@ -23,7 +25,7 @@ export function SavedResumesPanel({
   const handleDelete = async (resume: Resume) => {
     setDeletingId(resume.id);
     try {
-      await api.deleteResume(resume.id);
+      await repository.delete(resume.id);
       onDeleted(resume.id);
       setConfirmId(null);
     } catch (e) {

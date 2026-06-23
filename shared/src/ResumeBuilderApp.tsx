@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api } from './api/client';
 import { ATSPanel } from './components/ATSPanel';
 import { CustomizationPanel } from './components/CustomizationPanel';
 import { Header } from './components/Header';
@@ -11,7 +10,8 @@ import { SavedResumesPanel } from './components/SavedResumesPanel';
 import { SidebarTabs } from './components/Sidebar';
 import { Toast } from './components/Toast';
 import { useResumeEditor, type SaveEvent } from './hooks/useResumeEditor';
-import type { Resume } from './types/resume';
+import type { ResumeRepository } from './storage/repository';
+import type { Resume, ResumeData } from './types/resume';
 import { atsScore, runATSChecks } from './utils/ats';
 import { buildResumePrintHtml } from './utils/exportPrintHtml';
 import './App.css';
@@ -19,7 +19,25 @@ import './App.css';
 type SidebarTab = 'sections' | 'design' | 'ats' | 'saved';
 type MobileView = 'edit' | 'preview';
 
-export default function App() {
+export interface ResumeBuilderAppProps {
+  repository: ResumeRepository;
+  tagline?: string;
+  showDocxExport?: boolean;
+  exportPDF?: (data: ResumeData, html: string, filename: string) => Promise<void>;
+  exportDOCX?: (data: ResumeData, filename: string) => Promise<void>;
+  exportPdfSuccessMessage?: string;
+  exportDocxSuccessMessage?: string;
+}
+
+export default function ResumeBuilderApp({
+  repository,
+  tagline = 'ATS-ready · Live preview',
+  showDocxExport = true,
+  exportPDF,
+  exportDOCX,
+  exportPdfSuccessMessage = 'PDF downloaded successfully',
+  exportDocxSuccessMessage = 'DOCX downloaded successfully',
+}: ResumeBuilderAppProps) {
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   const handleSaved = useCallback((event: SaveEvent) => {
@@ -31,7 +49,7 @@ export default function App() {
     });
   }, []);
 
-  const editor = useResumeEditor(handleSaved);
+  const editor = useResumeEditor({ repository, onSaved: handleSaved });
   const [activeSectionId, setActiveSectionId] = useState<string>('sec-personal');
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('sections');
   const [mobileView, setMobileView] = useState<MobileView>('edit');
@@ -43,8 +61,8 @@ export default function App() {
   const score = atsScore(atsChecks);
 
   const refreshResumes = useCallback(() => {
-    api.listResumes().then(setResumes).catch(() => setResumes([]));
-  }, []);
+    repository.list().then(setResumes).catch(() => setResumes([]));
+  }, [repository]);
 
   useEffect(() => {
     refreshResumes();
@@ -57,17 +75,24 @@ export default function App() {
       setActiveSectionId('sec-personal');
     }
     setToast({ message: 'Resume deleted', type: 'success' });
-  }, [editor.resumeId, editor.newResume]);
+  }, [editor]);
 
   const handleExport = async (format: 'pdf' | 'docx') => {
     setExporting(format);
     try {
       const name = editor.data.personalInfo.fullName || editor.title || 'resume';
       if (format === 'pdf') {
+        if (!exportPDF) throw new Error('PDF export is not configured');
         const html = buildResumePrintHtml(editor.data);
-        await api.exportPDF(editor.data, html, name);
-      } else await api.exportDOCX(editor.data, name);
-      setToast({ message: `${format.toUpperCase()} downloaded successfully`, type: 'success' });
+        await exportPDF(editor.data, html, name);
+      } else {
+        if (!exportDOCX) throw new Error('DOCX export is not available');
+        await exportDOCX(editor.data, name);
+      }
+      setToast({
+        message: format === 'pdf' ? exportPdfSuccessMessage : exportDocxSuccessMessage,
+        type: 'success',
+      });
     } catch (e) {
       setToast({ message: e instanceof Error ? e.message : 'Export failed', type: 'error' });
     } finally {
@@ -94,8 +119,9 @@ export default function App() {
         onNew={editor.newResume}
         onSave={() => editor.save(false)}
         onExportPDF={() => handleExport('pdf')}
-        onExportDOCX={() => handleExport('docx')}
+        onExportDOCX={showDocxExport && exportDOCX ? () => handleExport('docx') : undefined}
         exporting={exporting}
+        tagline={tagline}
       />
 
       {editor.error && <div className="error-banner">{editor.error}</div>}
@@ -137,6 +163,7 @@ export default function App() {
               <SavedResumesPanel
                 resumes={resumes}
                 activeResumeId={editor.resumeId}
+                repository={repository}
                 onLoad={(r) => { editor.loadResume(r); setActiveSectionId('sec-personal'); }}
                 onDeleted={handleDeletedResume}
                 onError={(msg) => setToast({ message: msg, type: 'error' })}

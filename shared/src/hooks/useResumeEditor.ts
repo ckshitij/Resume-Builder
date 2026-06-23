@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuid } from 'uuid';
-import { api } from '../api/client';
+import type { ResumeRepository } from '../storage/repository';
 import type { Resume, ResumeData, Section, SectionType } from '../types/resume';
 import { ADDABLE_SECTION_TYPES } from '../types/resume';
 import { createSection, defaultResumeData } from '../utils/defaults';
@@ -12,7 +12,12 @@ export interface SaveEvent {
   resumeId: string | null;
 }
 
-export function useResumeEditor(onSaved?: (event: SaveEvent) => void) {
+interface Options {
+  repository: ResumeRepository;
+  onSaved?: (event: SaveEvent) => void;
+}
+
+export function useResumeEditor({ repository, onSaved }: Options) {
   const [resumeId, setResumeId] = useState<string | null>(null);
   const [title, setTitle] = useState('My Resume');
   const [data, setData] = useState<ResumeData>(defaultResumeData);
@@ -33,11 +38,11 @@ export function useResumeEditor(onSaved?: (event: SaveEvent) => void) {
     try {
       let id = resumeId;
       if (resumeId) {
-        const res = await api.updateResume(resumeId, title, data);
+        const res = await repository.update(resumeId, title, data);
         setData(res.data);
         id = res.id;
       } else {
-        const res = await api.createResume(title, data);
+        const res = await repository.create(title, data);
         setResumeId(res.id);
         setData(res.data);
         id = res.id;
@@ -51,7 +56,7 @@ export function useResumeEditor(onSaved?: (event: SaveEvent) => void) {
     } finally {
       setSaving(false);
     }
-  }, [resumeId, title, data]);
+  }, [repository, resumeId, title, data]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

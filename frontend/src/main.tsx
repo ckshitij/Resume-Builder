@@ -1,9 +1,11 @@
-import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App';
+import ResumeBuilderApp from '@shared/ResumeBuilderApp';
+import { exportDocxViaApi, exportPdfViaApi, httpResumeRepository } from './storage/httpRepository';
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+  <ResumeBuilderApp
+    repository={httpResumeRepository}
+    exportPDF={exportPdfViaApi}
+    exportDOCX={exportDocxViaApi}
+  />,
 );

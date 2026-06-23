@@ -210,10 +210,10 @@ Keep existing debounce in `useResumeEditor` (2s). Replace `api.updateResume` / `
 
 **Goal:** Prove extension shell + one save + one PDF.
 
-- [ ] Create `extension/` with Vite + `@crxjs/vite-plugin`
-- [ ] Load side panel with “Hello world” React
-- [ ] Save/load one resume in IndexedDB
-- [ ] Open export page and print HTML from `buildResumePrintHtml`
+- [x] Create `extension/` with Vite + `@crxjs/vite-plugin`
+- [x] Load side panel with React app
+- [x] Save/load resumes in IndexedDB
+- [x] PDF export via print HTML in new tab
 
 **Exit criteria:** Manual test — edit name → refresh extension → data persists → PDF looks like preview.
 
@@ -223,10 +223,10 @@ Keep existing debounce in `useResumeEditor` (2s). Replace `api.updateResume` / `
 
 **Goal:** Stop duplicating UI code.
 
-- [ ] Move `components/`, `templates/`, `types/`, `utils/` (except API-specific) into `shared/`
-- [ ] Update `frontend/` imports to `@shared/...`
-- [ ] Extension imports same shared modules
-- [ ] Verify web app still builds and runs
+- [x] Move `components/`, `templates/`, `types/`, `utils/` into `shared/`
+- [x] Update `frontend/` imports to `@shared/...`
+- [x] Extension imports same shared modules
+- [x] Verify web app and extension build
 
 **Exit criteria:** Both `frontend` and `extension` build from shared code.
 

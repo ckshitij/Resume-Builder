@@ -13,7 +13,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
-import type { Resume, ResumeData, TemplateMeta } from '../types/resume';
+import type { Resume, ResumeData, TemplateMeta } from '@shared/types/resume';
 
 export const api = {
   listResumes: () => request<Resume[]>('/api/resumes'),

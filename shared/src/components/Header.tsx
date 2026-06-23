@@ -8,8 +8,9 @@ interface HeaderProps {
   onNew: () => void;
   onSave: () => void;
   onExportPDF: () => void;
-  onExportDOCX: () => void;
+  onExportDOCX?: () => void;
   exporting: string | null;
+  tagline?: string;
 }
 
 export function Header({
@@ -22,6 +23,7 @@ export function Header({
   onExportPDF,
   onExportDOCX,
   exporting,
+  tagline = 'ATS-ready · Live preview',
 }: HeaderProps) {
   return (
     <header className="app-header">
@@ -31,7 +33,7 @@ export function Header({
         </div>
         <div>
           <h1>Resume Builder</h1>
-          <p className="brand-tagline">ATS-ready · Live preview</p>
+          <p className="brand-tagline">{tagline}</p>
         </div>
       </div>
 
@@ -66,15 +68,17 @@ export function Header({
             <IconDownload />
             {exporting === 'pdf' ? 'Exporting…' : 'PDF'}
           </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={onExportDOCX}
-            disabled={!!exporting}
-          >
-            <IconDownload />
-            {exporting === 'docx' ? 'Exporting…' : 'DOCX'}
-          </button>
+          {onExportDOCX && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={onExportDOCX}
+              disabled={!!exporting}
+            >
+              <IconDownload />
+              {exporting === 'docx' ? 'Exporting…' : 'DOCX'}
+            </button>
+          )}
         </div>
       </div>
     </header>
