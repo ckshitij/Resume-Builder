@@ -6,6 +6,7 @@ import { exportPdfViaPrint, indexedDbRepository } from './storage/indexedDbRepos
 
 createRoot(document.getElementById('root')!).render(
   <ResumeBuilderApp
+    variant="extension"
     repository={indexedDbRepository}
     tagline="Saved locally · No account required"
     showDocxExport={false}

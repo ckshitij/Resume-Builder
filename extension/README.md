@@ -4,7 +4,7 @@ Local-first resume editor using the shared React UI from `../shared`.
 
 ## Features
 
-- Full editor + live preview in Chrome side panel
+- Full editor + live preview in a **full Chrome tab** (click the toolbar icon)
 - Auto-save to **IndexedDB** (data stays on your device)
 - List, load, and delete saved resumes
 - PDF export via browser print (WYSIWYG)
@@ -52,10 +52,11 @@ See **[CHROME_WEB_STORE.md](./CHROME_WEB_STORE.md)** for store description, perm
 
 ## Usage
 
-1. Click the extension icon to open the **side panel**
+1. Click the **Resume Builder** icon in the toolbar — opens a full tab
 2. Edit your resume — changes auto-save locally every 2 seconds
-3. Open the **Saved** tab to switch or delete resumes
-4. Click **PDF** — allow pop-ups if prompted, then choose **Save as PDF** in the print dialog
+3. Set the **Resume name** in the header or on the **Saved** tab
+4. Open the **Saved** tab to switch or delete resumes
+5. Click **PDF** — allow pop-ups if prompted, then choose **Save as PDF** in the print dialog
 
 ## Architecture
 

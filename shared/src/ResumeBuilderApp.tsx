@@ -27,6 +27,8 @@ export interface ResumeBuilderAppProps {
   exportDOCX?: (data: ResumeData, filename: string) => Promise<void>;
   exportPdfSuccessMessage?: string;
   exportDocxSuccessMessage?: string;
+  /** Extension: full-tab layout with visible resume name */
+  variant?: 'web' | 'extension';
 }
 
 export default function ResumeBuilderApp({
@@ -37,6 +39,7 @@ export default function ResumeBuilderApp({
   exportDOCX,
   exportPdfSuccessMessage = 'PDF downloaded successfully',
   exportDocxSuccessMessage = 'DOCX downloaded successfully',
+  variant = 'web',
 }: ResumeBuilderAppProps) {
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
@@ -110,7 +113,7 @@ export default function ResumeBuilderApp({
   ];
 
   return (
-    <div className="app">
+    <div className={`app ${variant === 'extension' ? 'app-extension' : ''}`}>
       <Header
         title={editor.title}
         onTitleChange={editor.setTitle}
@@ -122,6 +125,7 @@ export default function ResumeBuilderApp({
         onExportDOCX={showDocxExport && exportDOCX ? () => handleExport('docx') : undefined}
         exporting={exporting}
         tagline={tagline}
+        showTitleLabel={variant === 'extension'}
       />
 
       {editor.error && <div className="error-banner">{editor.error}</div>}
@@ -164,6 +168,8 @@ export default function ResumeBuilderApp({
                 resumes={resumes}
                 activeResumeId={editor.resumeId}
                 repository={repository}
+                title={editor.title}
+                onTitleChange={editor.setTitle}
                 onLoad={(r) => { editor.loadResume(r); setActiveSectionId('sec-personal'); }}
                 onDeleted={handleDeletedResume}
                 onError={(msg) => setToast({ message: msg, type: 'error' })}

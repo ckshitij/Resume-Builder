@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Resume Builder",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Build ATS-friendly resumes with live preview. Saved locally on your device — no account required.",
   "minimum_chrome_version": "114",
   "homepage_url": "https://github.com/ckshitij/Resume-Builder",
-  "permissions": ["storage", "sidePanel"],
+  "permissions": ["storage", "tabs", "sidePanel"],
   "action": {
     "default_title": "Open Resume Builder",
     "default_icon": {

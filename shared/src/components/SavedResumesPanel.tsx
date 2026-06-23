@@ -6,6 +6,8 @@ interface Props {
   resumes: Resume[];
   activeResumeId: string | null;
   repository: ResumeRepository;
+  title?: string;
+  onTitleChange?: (title: string) => void;
   onLoad: (resume: Resume) => void;
   onDeleted: (id: string) => void;
   onError: (message: string) => void;
@@ -15,6 +17,8 @@ export function SavedResumesPanel({
   resumes,
   activeResumeId,
   repository,
+  title,
+  onTitleChange,
   onLoad,
   onDeleted,
   onError,
@@ -39,6 +43,16 @@ export function SavedResumesPanel({
     return (
       <div className="saved-panel">
         <h3>Your resumes</h3>
+        {title != null && onTitleChange && (
+          <label className="field-full saved-panel-rename">
+            Resume name
+            <input
+              value={title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              placeholder="e.g. Software Engineer 2026"
+            />
+          </label>
+        )}
         <p className="panel-hint">No saved resumes yet. Edits are auto-saved after you start editing.</p>
       </div>
     );
@@ -47,6 +61,17 @@ export function SavedResumesPanel({
   return (
     <div className="saved-panel">
       <h3>Your resumes</h3>
+      {title != null && onTitleChange && (
+        <label className="field-full saved-panel-rename">
+          Resume name
+          <input
+            value={title}
+            onChange={(e) => onTitleChange(e.target.value)}
+            placeholder="e.g. Software Engineer 2026"
+          />
+          <span className="panel-hint">Renames the current resume. Auto-saves after you stop typing.</span>
+        </label>
+      )}
       <p className="panel-hint">Load a resume to edit, or delete ones you no longer need.</p>
       <ul className="resume-list">
         {resumes.map((r) => (
