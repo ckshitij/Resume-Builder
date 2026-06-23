@@ -14,6 +14,11 @@ export default defineConfig({
       '@shared': path.resolve(__dirname, '../shared/src'),
     },
   },
+  build: {
+    sourcemap: false,
+    minify: 'esbuild',
+    chunkSizeWarningLimit: 3000,
+  },
   server: {
     port: 5174,
     strictPort: true,

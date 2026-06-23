@@ -95,31 +95,40 @@ export async function exportPdfViaPrint(_data: ResumeData, html: string, filenam
 
   const blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  const win = window.open(url, '_blank', 'noopener,noreferrer');
+  const win = window.open(url, '_blank');
 
   if (!win) {
     URL.revokeObjectURL(url);
     throw new Error('Allow pop-ups to export PDF');
   }
 
-  await new Promise<void>((resolve, reject) => {
-    const timeout = window.setTimeout(() => reject(new Error('Print window timed out')), 30000);
-    win.onload = () => {
-      window.clearTimeout(timeout);
-      resolve();
-    };
-  });
-
-  if (win.document.fonts) {
-    await win.document.fonts.ready;
-  }
-  await new Promise((resolve) => window.setTimeout(resolve, 300));
-
-  win.focus();
-  win.print();
-
-  win.addEventListener('afterprint', () => {
-    win.close();
+  const cleanup = () => {
     URL.revokeObjectURL(url);
-  }, { once: true });
+    if (!win.closed) win.close();
+  };
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => reject(new Error('Print window timed out')), 30000);
+      win.onload = () => {
+        window.clearTimeout(timeout);
+        resolve();
+      };
+    });
+
+    if (win.document.fonts) {
+      await win.document.fonts.ready;
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 300));
+
+    win.focus();
+    win.print();
+
+    win.addEventListener('afterprint', cleanup, { once: true });
+    // Fallback if afterprint never fires (some browsers)
+    window.setTimeout(cleanup, 120_000);
+  } catch (e) {
+    cleanup();
+    throw e;
+  }
 }

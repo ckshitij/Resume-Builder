@@ -10,5 +10,6 @@ createRoot(document.getElementById('root')!).render(
     tagline="Saved locally · No account required"
     showDocxExport={false}
     exportPDF={exportPdfViaPrint}
+    exportPdfSuccessMessage="Print dialog opened — choose Save as PDF"
   />,
 );

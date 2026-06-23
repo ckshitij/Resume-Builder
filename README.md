@@ -432,9 +432,14 @@ npm install
 npm run build
 ```
 
-Load `extension/dist` as an unpacked extension in `chrome://extensions`, then click the toolbar icon to open the side panel.
+Load `extension/dist` as an unpacked extension, or build a Chrome Web Store zip:
 
-See [extension/README.md](extension/README.md) and [docs/chrome-extension-plan.md](docs/chrome-extension-plan.md) for details.
+```bash
+cd extension
+npm run package:store   # → extension/release/resume-builder-extension.zip
+```
+
+See [extension/CHROME_WEB_STORE.md](extension/CHROME_WEB_STORE.md) for store submission and [docs/privacy-policy.html](docs/privacy-policy.html) for the required privacy policy.
 
 ---
 

@@ -1,8 +1,8 @@
 # Resume Builder — Chrome Extension
 
-Local-first resume editor using the shared React UI from `../frontend`.
+Local-first resume editor using the shared React UI from `../shared`.
 
-## Features (v1)
+## Features
 
 - Full editor + live preview in Chrome side panel
 - Auto-save to **IndexedDB** (data stays on your device)
@@ -12,24 +12,43 @@ Local-first resume editor using the shared React UI from `../frontend`.
 ## Development
 
 ```bash
-cd extension
 npm install
 npm run dev
 ```
 
 1. Open Chrome → **Extensions** → enable **Developer mode**
 2. Click **Load unpacked**
-3. Select the `extension/dist` folder (created after first build)
+3. Select the `dist/` folder (created after first build)
 
 While developing, `npm run dev` watches and rebuilds. Click **Reload** on the extension card after changes.
 
-## Build
+## Production / Chrome Web Store
+
+### 1. Build store package
 
 ```bash
-npm run build
+npm run package:store
 ```
 
-Load `extension/dist` as an unpacked extension.
+This runs a production build and creates:
+
+```
+release/resume-builder-extension.zip
+```
+
+Upload that zip to the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole).
+
+### 2. Privacy policy
+
+Required for store submission. Host `../docs/privacy-policy.html` (e.g. via GitHub Pages):
+
+```
+https://ckshitij.github.io/Resume-Builder/docs/privacy-policy.html
+```
+
+### 3. Listing copy & checklist
+
+See **[CHROME_WEB_STORE.md](./CHROME_WEB_STORE.md)** for store description, permission justifications, screenshot tips, and pre-submit checklist.
 
 ## Usage
 

@@ -25,6 +25,8 @@ export interface ResumeBuilderAppProps {
   showDocxExport?: boolean;
   exportPDF?: (data: ResumeData, html: string, filename: string) => Promise<void>;
   exportDOCX?: (data: ResumeData, filename: string) => Promise<void>;
+  exportPdfSuccessMessage?: string;
+  exportDocxSuccessMessage?: string;
 }
 
 export default function ResumeBuilderApp({
@@ -33,6 +35,8 @@ export default function ResumeBuilderApp({
   showDocxExport = true,
   exportPDF,
   exportDOCX,
+  exportPdfSuccessMessage = 'PDF downloaded successfully',
+  exportDocxSuccessMessage = 'DOCX downloaded successfully',
 }: ResumeBuilderAppProps) {
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
@@ -85,7 +89,10 @@ export default function ResumeBuilderApp({
         if (!exportDOCX) throw new Error('DOCX export is not available');
         await exportDOCX(editor.data, name);
       }
-      setToast({ message: `${format.toUpperCase()} downloaded successfully`, type: 'success' });
+      setToast({
+        message: format === 'pdf' ? exportPdfSuccessMessage : exportDocxSuccessMessage,
+        type: 'success',
+      });
     } catch (e) {
       setToast({ message: e instanceof Error ? e.message : 'Export failed', type: 'error' });
     } finally {

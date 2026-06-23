@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build"
+    "build": "tsc --noEmit && vite build",
+    "package:store": "bash scripts/package-store.sh"
   },
   "dependencies": {
     "country-state-city": "^3.2.1",
