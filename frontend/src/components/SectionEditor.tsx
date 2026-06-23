@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { v4 as uuid } from 'uuid';
 import type { ResumeData, SectionType } from '../types/resume';
 import { Checkbox } from './Checkbox';
@@ -12,6 +13,38 @@ interface Props {
   data: ResumeData;
   activeSectionId: string | null;
   onChange: (updater: (prev: ResumeData) => ResumeData) => void;
+}
+
+function parseSkills(value: string): string[] {
+  return value.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+function SkillsInput({
+  skills,
+  onChange,
+}: {
+  skills: string[];
+  onChange: (skills: string[]) => void;
+}) {
+  const normalized = skills.join(', ');
+  const [text, setText] = useState(normalized);
+
+  useEffect(() => {
+    setText((prev) => (parseSkills(prev).join(', ') === normalized ? prev : normalized));
+  }, [normalized]);
+
+  return (
+    <input
+      value={text}
+      onChange={(e) => {
+        const value = e.target.value;
+        setText(value);
+        onChange(parseSkills(value));
+      }}
+      onBlur={() => setText(normalized)}
+      placeholder="e.g. Go, React, PostgreSQL, AWS"
+    />
+  );
 }
 
 const SECTION_DESCRIPTIONS: Record<SectionType, string> = {
@@ -224,13 +257,9 @@ export function SectionEditor({ data, activeSectionId, onChange }: Props) {
         <EditorShell title="Skills" description={desc}>
           <label className="field-full">
             Skills (comma-separated)
-            <input
-              value={data.skills.join(', ')}
-              onChange={(e) => onChange((prev) => ({
-                ...prev,
-                skills: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
-              }))}
-              placeholder="e.g. Go, React, PostgreSQL, AWS"
+            <SkillsInput
+              skills={data.skills}
+              onChange={(skills) => onChange((prev) => ({ ...prev, skills }))}
             />
           </label>
           {data.skills.length > 0 && (
