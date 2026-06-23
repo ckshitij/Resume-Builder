@@ -27,10 +27,14 @@ interface TemplateProps {
 export function ATSTemplate({ data }: TemplateProps) {
   const pi = data.personalInfo;
   const sections = enabledSections(data);
+  const { fontFamily, fontSize, primaryColor } = data.customization;
 
   return (
-    <div className="resume-page resume-ats">
-      <h1>{pi.fullName}</h1>
+    <div
+      className="resume-page resume-ats"
+      style={{ fontFamily, fontSize: `${fontSize}pt`, color: '#000' }}
+    >
+      <h1 style={{ color: primaryColor }}>{pi.fullName}</h1>
       <div className="contact-line">{contactLine(data)}</div>
 
       {sections.map((section) => {
@@ -39,7 +43,7 @@ export function ATSTemplate({ data }: TemplateProps) {
             if (!pi.summary) return null;
             return (
               <section key={section.id}>
-                <h2>{section.title}</h2>
+                <h2 style={{ borderColor: primaryColor, color: primaryColor }}>{section.title}</h2>
                 <p>{pi.summary}</p>
               </section>
             );
@@ -47,7 +51,7 @@ export function ATSTemplate({ data }: TemplateProps) {
             if (!data.experience.length) return null;
             return (
               <section key={section.id}>
-                <h2>{section.title}</h2>
+                <h2 style={{ borderColor: primaryColor, color: primaryColor }}>{section.title}</h2>
                 {data.experience.map((exp) => (
                   <div key={exp.id} className="entry">
                     <div className="entry-title">
@@ -71,7 +75,7 @@ export function ATSTemplate({ data }: TemplateProps) {
             if (!data.education.length) return null;
             return (
               <section key={section.id}>
-                <h2>{section.title}</h2>
+                <h2 style={{ borderColor: primaryColor, color: primaryColor }}>{section.title}</h2>
                 {data.education.map((edu) => (
                   <div key={edu.id} className="entry">
                     <div className="entry-title">
@@ -90,7 +94,7 @@ export function ATSTemplate({ data }: TemplateProps) {
             if (!data.skills.length) return null;
             return (
               <section key={section.id}>
-                <h2>{section.title}</h2>
+                <h2 style={{ borderColor: primaryColor, color: primaryColor }}>{section.title}</h2>
                 <p>{data.skills.join(', ')}</p>
               </section>
             );
@@ -98,7 +102,7 @@ export function ATSTemplate({ data }: TemplateProps) {
             if (!data.projects.length) return null;
             return (
               <section key={section.id}>
-                <h2>{section.title}</h2>
+                <h2 style={{ borderColor: primaryColor, color: primaryColor }}>{section.title}</h2>
                 {data.projects.map((proj) => (
                   <div key={proj.id} className="entry">
                     <div className="entry-title">
@@ -115,7 +119,7 @@ export function ATSTemplate({ data }: TemplateProps) {
             if (!data.certifications.length) return null;
             return (
               <section key={section.id}>
-                <h2>{section.title}</h2>
+                <h2 style={{ borderColor: primaryColor, color: primaryColor }}>{section.title}</h2>
                 {data.certifications.map((cert) => (
                   <div key={cert.id} className="entry">
                     <div className="entry-title">
@@ -130,7 +134,7 @@ export function ATSTemplate({ data }: TemplateProps) {
             if (!data.languages.length) return null;
             return (
               <section key={section.id}>
-                <h2>{section.title}</h2>
+                <h2 style={{ borderColor: primaryColor, color: primaryColor }}>{section.title}</h2>
                 <p>{data.languages.map((l) => `${l.name} (${l.proficiency})`).join(', ')}</p>
               </section>
             );
@@ -139,7 +143,7 @@ export function ATSTemplate({ data }: TemplateProps) {
             if (!block?.content) return null;
             return (
               <section key={section.id}>
-                <h2>{section.title}</h2>
+                <h2 style={{ borderColor: primaryColor, color: primaryColor }}>{section.title}</h2>
                 <p>{block.content}</p>
               </section>
             );

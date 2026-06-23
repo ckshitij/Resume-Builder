@@ -1,5 +1,19 @@
 import type { Section, SectionType } from '../types/resume';
 import { ATS_STANDARD_TITLES } from '../types/resume';
+import {
+  IconAward,
+  IconBriefcase,
+  IconChevronDown,
+  IconChevronUp,
+  IconEdit,
+  IconFolder,
+  IconGlobe,
+  IconGraduation,
+  IconLayers,
+  IconPlus,
+  IconStar,
+  IconUser,
+} from './Icons';
 
 interface Props {
   sections: Section[];
@@ -24,6 +38,18 @@ const TYPE_LABELS: Record<SectionType, string> = {
   custom: 'Custom',
 };
 
+const SECTION_ICONS: Record<SectionType, React.ReactNode> = {
+  personal: <IconUser />,
+  summary: <IconEdit />,
+  experience: <IconBriefcase />,
+  education: <IconGraduation />,
+  skills: <IconStar />,
+  projects: <IconFolder />,
+  certifications: <IconAward />,
+  languages: <IconGlobe />,
+  custom: <IconLayers />,
+};
+
 export function SectionManager({
   sections,
   availableToAdd,
@@ -35,10 +61,8 @@ export function SectionManager({
   onSelect,
 }: Props) {
   return (
-    <div className="panel section-manager">
-      <div className="panel-header">
-        <h3>Sections</h3>
-      </div>
+    <div className="section-manager">
+      <p className="panel-hint">Click a section to edit. Drag order with arrows.</p>
       <ul className="section-list">
         {sections.map((section, idx) => (
           <li
@@ -46,59 +70,64 @@ export function SectionManager({
             className={`section-item ${section.enabled ? '' : 'disabled'} ${activeSectionId === section.id ? 'active' : ''}`}
           >
             <button type="button" className="section-select" onClick={() => onSelect(section.id)}>
-              {TYPE_LABELS[section.type]}
-              {!section.enabled && ' (hidden)'}
+              <span className="section-icon">{SECTION_ICONS[section.type]}</span>
+              <span className="section-label">
+                {TYPE_LABELS[section.type]}
+                {!section.enabled && <span className="hidden-badge">Hidden</span>}
+              </span>
             </button>
-            <div className="section-actions">
-              {section.type !== 'personal' && (
-                <>
-                  <button type="button" title="Move up" disabled={idx === 0} onClick={() => onReorder(section.id, 'up')}>↑</button>
-                  <button type="button" title="Move down" disabled={idx === sections.length - 1} onClick={() => onReorder(section.id, 'down')}>↓</button>
-                  {section.enabled ? (
-                    <button type="button" title="Remove section" onClick={() => onRemove(section.id)}>−</button>
-                  ) : (
-                    <button type="button" title="Restore section" onClick={() => onUpdate(section.id, { enabled: true })}>+</button>
-                  )}
-                </>
-              )}
-            </div>
+            {section.type !== 'personal' && (
+              <div className="section-actions">
+                <button type="button" className="btn-icon-sm" title="Move up" disabled={idx === 0} onClick={() => onReorder(section.id, 'up')}>
+                  <IconChevronUp />
+                </button>
+                <button type="button" className="btn-icon-sm" title="Move down" disabled={idx === sections.length - 1} onClick={() => onReorder(section.id, 'down')}>
+                  <IconChevronDown />
+                </button>
+                {section.enabled ? (
+                  <button type="button" className="btn-icon-sm danger" title="Hide section" onClick={() => onRemove(section.id)}>−</button>
+                ) : (
+                  <button type="button" className="btn-icon-sm success" title="Show section" onClick={() => onUpdate(section.id, { enabled: true })}>
+                    <IconPlus />
+                  </button>
+                )}
+              </div>
+            )}
           </li>
         ))}
       </ul>
+
       {availableToAdd.length > 0 && (
-        <div className="add-section">
-          <select
-            id="add-section-select"
-            defaultValue=""
-            onChange={(e) => {
-              const type = e.target.value as SectionType;
-              if (type) {
-                onAdd(type);
-                e.target.value = '';
-              }
-            }}
-          >
-            <option value="" disabled>Add section…</option>
-            {availableToAdd.map((type) => (
-              <option key={type} value={type}>{TYPE_LABELS[type]}</option>
-            ))}
-          </select>
+        <div className="add-section-bar">
+          {availableToAdd.map((type) => (
+            <button key={type} type="button" className="add-section-chip" onClick={() => onAdd(type)}>
+              <IconPlus />
+              {TYPE_LABELS[type]}
+            </button>
+          ))}
         </div>
       )}
-      {sections.filter((s) => s.enabled && s.type !== 'personal').map((section) => (
-        <div key={`title-${section.id}`} className="section-title-edit">
-          <label htmlFor={`title-${section.id}`}>{TYPE_LABELS[section.type]} heading</label>
-          <input
-            id={`title-${section.id}`}
-            value={section.title}
-            onChange={(e) => onUpdate(section.id, { title: e.target.value })}
-            placeholder={ATS_STANDARD_TITLES[section.type]}
-          />
-          {section.title !== ATS_STANDARD_TITLES[section.type] && section.type !== 'custom' && (
-            <small className="ats-hint">Non-standard heading may reduce ATS score</small>
-          )}
-        </div>
-      ))}
+
+      <div className="section-headings">
+        <h4 className="subsection-title">Section headings</h4>
+        {sections.filter((s) => s.enabled && s.type !== 'personal').map((section) => (
+          <div key={`title-${section.id}`} className="section-title-edit">
+            <label htmlFor={`title-${section.id}`}>
+              <span className="label-icon">{SECTION_ICONS[section.type]}</span>
+              {TYPE_LABELS[section.type]}
+            </label>
+            <input
+              id={`title-${section.id}`}
+              value={section.title}
+              onChange={(e) => onUpdate(section.id, { title: e.target.value })}
+              placeholder={ATS_STANDARD_TITLES[section.type]}
+            />
+            {section.title !== ATS_STANDARD_TITLES[section.type] && section.type !== 'custom' && (
+              <small className="ats-hint">Non-standard heading may reduce ATS score</small>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
