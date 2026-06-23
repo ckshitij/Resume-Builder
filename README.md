@@ -19,6 +19,7 @@ Built with **React + TypeScript** on the frontend, **Go** on the backend, and **
 - [ATS compatibility](#ats-compatibility)
 - [API reference](#api-reference)
 - [Project structure](#project-structure)
+- [Chrome extension](#chrome-extension)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
 
@@ -391,18 +392,49 @@ resume-builder/
 │   ├── Dockerfile
 │   └── go.mod
 │
-└── frontend/
-    ├── src/
-    │   ├── api/                  # API client
-    │   ├── components/           # UI components
-    │   ├── hooks/                # useResumeEditor
-    │   ├── templates/            # React resume templates (preview)
-    │   ├── types/                # TypeScript types
-    │   ├── utils/                # ATS checks, defaults, exportPrintHtml, font/color options
-    ├── Dockerfile
-    ├── nginx.conf                # Proxies /api to backend
-    └── package.json
+├── shared/                     # Shared React UI (web + extension)
+│   └── src/
+│       ├── components/         # Editor, preview, ATS panel, etc.
+│       ├── hooks/              # useResumeEditor
+│       ├── templates/          # Resume templates
+│       ├── types/              # TypeScript types
+│       ├── utils/              # ATS, defaults, exportPrintHtml
+│       └── ResumeBuilderApp.tsx
+│
+├── frontend/                   # Web app (API-backed)
+│   ├── src/
+│   │   ├── api/                # REST client
+│   │   └── storage/            # HttpResumeRepository
+│   ├── Dockerfile
+│   ├── nginx.conf              # Proxies /api to backend
+│   └── package.json
+│
+├── extension/                  # Chrome extension (local IndexedDB)
+│   ├── manifest.json
+│   ├── src/
+│   │   ├── storage/            # IndexedDB repository
+│   │   └── export/             # Client-side PDF via print
+│   └── package.json
+│
+└── docs/
+    └── chrome-extension-plan.md
 ```
+
+---
+
+## Chrome extension
+
+A **local-first** Chrome extension reuses the shared editor and stores resumes in **IndexedDB** on your device — no server required.
+
+```bash
+cd extension
+npm install
+npm run build
+```
+
+Load `extension/dist` as an unpacked extension in `chrome://extensions`, then click the toolbar icon to open the side panel.
+
+See [extension/README.md](extension/README.md) and [docs/chrome-extension-plan.md](docs/chrome-extension-plan.md) for details.
 
 ---
 

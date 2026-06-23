@@ -1,0 +1,21 @@
+/* Side panel is narrower than the full web app — stack editor and preview vertically */
+.app .workspace {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+}
+
+.app .sidebar-left {
+  max-height: 40vh;
+}
+
+.app .preview-pane-wrapper {
+  min-height: 320px;
+}
+
+.app .header-center {
+  flex-wrap: wrap;
+}
+
+.app .header-actions {
+  flex-wrap: wrap;
+}

@@ -1,22 +1,21 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { crx } from '@crxjs/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import manifest from './manifest.json';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), crx({ manifest })],
   resolve: {
     alias: {
       '@shared': path.resolve(__dirname, '../shared/src'),
     },
   },
   server: {
-    port: 5173,
-    proxy: {
-      '/api': 'http://localhost:8080',
-      '/health': 'http://localhost:8080',
-    },
+    port: 5174,
+    strictPort: true,
   },
 });
