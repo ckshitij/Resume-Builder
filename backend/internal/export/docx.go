@@ -70,6 +70,10 @@ func generateATSPDF(data models.ResumeData) ([]byte, error) {
 					pdf.SetFont("Helvetica", "", 10)
 					pdf.CellFormat(0, 4, meta, "", 1, "L", false, 0, "")
 				}
+				if strings.TrimSpace(exp.CompanyDescription) != "" {
+					pdf.SetFont("Helvetica", "I", 9)
+					pdf.MultiCell(0, 4, stripRichMarkup(exp.CompanyDescription), "", "L", false)
+				}
 				writeBulletLines(pdf, exp.Description, 11)
 				pdf.Ln(2)
 			}
@@ -181,7 +185,7 @@ func writeBulletLines(pdf *gofpdf.Fpdf, text string, fontSize float64) {
 			continue
 		}
 		pdf.CellFormat(4, 4, "-", "", 0, "L", false, 0, "")
-		pdf.MultiCell(0, 4, line, "", "L", false)
+		pdf.MultiCell(0, 4, stripRichMarkup(line), "", "L", false)
 	}
 }
 
@@ -197,6 +201,13 @@ func buildDOCXBody(data models.ResumeData) string {
 		} else {
 			style = `<w:rPr><w:sz w:val="` + fmt.Sprint(size*2) + `"/></w:rPr>`
 		}
+		b.WriteString(`<w:p><w:r>` + style + `<w:t xml:space="preserve">` + xmlEscape(text) + `</w:t></w:r></w:p>`)
+	}
+	writeItalicPara := func(text string, size int) {
+		if text == "" {
+			return
+		}
+		style := `<w:rPr><w:i/><w:sz w:val="` + fmt.Sprint(size*2) + `"/></w:rPr>`
 		b.WriteString(`<w:p><w:r>` + style + `<w:t xml:space="preserve">` + xmlEscape(text) + `</w:t></w:r></w:p>`)
 	}
 
@@ -221,10 +232,13 @@ func buildDOCXBody(data models.ResumeData) string {
 				writePara(fmt.Sprintf("%s | %s", exp.Position, exp.Company), true, 11)
 				meta := joinNonEmpty([]string{formatDateRange(exp.StartDate, exp.EndDate, exp.Current), exp.Location}, " | ")
 				writePara(meta, false, 10)
+				if strings.TrimSpace(exp.CompanyDescription) != "" {
+					writeItalicPara(stripRichMarkup(exp.CompanyDescription), 9)
+				}
 				for _, line := range strings.Split(exp.Description, "\n") {
 					line = strings.TrimSpace(line)
 					if line != "" {
-						writePara("- "+line, false, 11)
+						writePara("- "+stripRichMarkup(line), false, 11)
 					}
 				}
 			}

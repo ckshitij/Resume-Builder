@@ -1,38 +1,53 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuid } from 'uuid';
 import { api } from '../api/client';
 import type { Resume, ResumeData, Section, SectionType } from '../types/resume';
 import { ADDABLE_SECTION_TYPES } from '../types/resume';
 import { createSection, defaultResumeData } from '../utils/defaults';
+import { moveItem } from '../utils/reorder';
 
-export function useResumeEditor() {
+export interface SaveEvent {
+  title: string;
+  auto: boolean;
+  resumeId: string | null;
+}
+
+export function useResumeEditor(onSaved?: (event: SaveEvent) => void) {
   const [resumeId, setResumeId] = useState<string | null>(null);
   const [title, setTitle] = useState('My Resume');
   const [data, setData] = useState<ResumeData>(defaultResumeData);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const onSavedRef = useRef(onSaved);
+  onSavedRef.current = onSaved;
 
   const updateData = useCallback((updater: (prev: ResumeData) => ResumeData) => {
     setData((prev) => updater(prev));
     setSaved(false);
   }, []);
 
-  const save = useCallback(async () => {
+  const save = useCallback(async (auto = false): Promise<boolean> => {
     setSaving(true);
     setError(null);
     try {
+      let id = resumeId;
       if (resumeId) {
         const res = await api.updateResume(resumeId, title, data);
         setData(res.data);
+        id = res.id;
       } else {
         const res = await api.createResume(title, data);
         setResumeId(res.id);
         setData(res.data);
+        id = res.id;
       }
       setSaved(true);
+      onSavedRef.current?.({ title, auto, resumeId: id });
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -40,7 +55,7 @@ export function useResumeEditor() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!saved && !saving) save();
+      if (!saved && !saving) save(true);
     }, 2000);
     return () => clearTimeout(timer);
   }, [data, saved, saving, save]);
@@ -76,15 +91,26 @@ export function useResumeEditor() {
     }));
   };
 
+  const moveSection = (fromIndex: number, toIndex: number) => {
+    updateData((prev) => {
+      const from = prev.sections[fromIndex];
+      const to = prev.sections[toIndex];
+      if (!from || !to) return prev;
+      if (from.type === 'personal' || to.type === 'personal') return prev;
+      return { ...prev, sections: moveItem(prev.sections, fromIndex, toIndex) };
+    });
+  };
+
   const reorderSection = (sectionId: string, direction: 'up' | 'down') => {
     updateData((prev) => {
-      const sections = [...prev.sections];
-      const idx = sections.findIndex((s) => s.id === sectionId);
+      const idx = prev.sections.findIndex((s) => s.id === sectionId);
       if (idx < 0) return prev;
-      const swap = direction === 'up' ? idx - 1 : idx + 1;
-      if (swap < 0 || swap >= sections.length) return prev;
-      [sections[idx], sections[swap]] = [sections[swap], sections[idx]];
-      return { ...prev, sections };
+      const toIndex = direction === 'up' ? idx - 1 : idx + 1;
+      if (toIndex < 0 || toIndex >= prev.sections.length) return prev;
+      const from = prev.sections[idx];
+      const to = prev.sections[toIndex];
+      if (from.type === 'personal' || to.type === 'personal') return prev;
+      return { ...prev, sections: moveItem(prev.sections, idx, toIndex) };
     });
   };
 
@@ -127,6 +153,7 @@ export function useResumeEditor() {
     addSection,
     removeSection,
     reorderSection,
+    moveSection,
     updateSection,
     loadResume,
     newResume,

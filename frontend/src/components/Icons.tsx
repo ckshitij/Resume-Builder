@@ -125,6 +125,22 @@ export function IconChevronDown({ className }: { className?: string }) {
   );
 }
 
+export function IconChevronLeft({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
+}
+
+export function IconChevronRight({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
 export function IconEye({ className }: { className?: string }) {
   return (
     <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -137,6 +153,16 @@ export function IconLayers({ className }: { className?: string }) {
   return (
     <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" />
+    </svg>
+  );
+}
+
+export function IconGrip({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">
+      <circle cx="2" cy="2" r="1.5" /><circle cx="8" cy="2" r="1.5" />
+      <circle cx="2" cy="8" r="1.5" /><circle cx="8" cy="8" r="1.5" />
+      <circle cx="2" cy="14" r="1.5" /><circle cx="8" cy="14" r="1.5" />
     </svg>
   );
 }

@@ -3,13 +3,14 @@ import { api } from './api/client';
 import { ATSPanel } from './components/ATSPanel';
 import { CustomizationPanel } from './components/CustomizationPanel';
 import { Header } from './components/Header';
-import { IconLayers, IconPalette, IconShield } from './components/Icons';
+import { IconFolder, IconLayers, IconPalette, IconShield } from './components/Icons';
 import { PreviewPanel } from './components/PreviewPanel';
 import { SectionEditor } from './components/SectionEditor';
 import { SectionManager } from './components/SectionManager';
+import { SavedResumesPanel } from './components/SavedResumesPanel';
 import { SidebarTabs } from './components/Sidebar';
 import { Toast } from './components/Toast';
-import { useResumeEditor } from './hooks/useResumeEditor';
+import { useResumeEditor, type SaveEvent } from './hooks/useResumeEditor';
 import type { Resume } from './types/resume';
 import { atsScore, runATSChecks } from './utils/ats';
 import './App.css';
@@ -18,20 +19,44 @@ type SidebarTab = 'sections' | 'design' | 'ats' | 'saved';
 type MobileView = 'edit' | 'preview';
 
 export default function App() {
-  const editor = useResumeEditor();
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+
+  const handleSaved = useCallback((event: SaveEvent) => {
+    setToast({
+      message: event.auto
+        ? `"${event.title}" auto-saved`
+        : `"${event.title}" saved successfully`,
+      type: 'success',
+    });
+  }, []);
+
+  const editor = useResumeEditor(handleSaved);
   const [activeSectionId, setActiveSectionId] = useState<string>('sec-personal');
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('sections');
   const [mobileView, setMobileView] = useState<MobileView>('edit');
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [exporting, setExporting] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
 
   const atsChecks = useMemo(() => runATSChecks(editor.data), [editor.data]);
   const score = atsScore(atsChecks);
 
-  useEffect(() => {
+  const refreshResumes = useCallback(() => {
     api.listResumes().then(setResumes).catch(() => setResumes([]));
-  }, [editor.saved, editor.resumeId]);
+  }, []);
+
+  useEffect(() => {
+    refreshResumes();
+  }, [editor.saved, editor.resumeId, refreshResumes]);
+
+  const handleDeletedResume = useCallback((id: string) => {
+    setResumes((prev) => prev.filter((r) => r.id !== id));
+    if (editor.resumeId === id) {
+      editor.newResume();
+      setActiveSectionId('sec-personal');
+    }
+    setToast({ message: 'Resume deleted', type: 'success' });
+  }, [editor.resumeId, editor.newResume]);
 
   const handleExport = async (format: 'pdf' | 'docx') => {
     setExporting(format);
@@ -53,7 +78,7 @@ export default function App() {
     { id: 'sections', label: 'Sections', icon: <IconLayers /> },
     { id: 'design', label: 'Design', icon: <IconPalette /> },
     { id: 'ats', label: 'ATS', icon: <IconShield /> },
-    ...(resumes.length > 0 ? [{ id: 'saved', label: 'Saved', icon: <IconLayers /> }] : []),
+    { id: 'saved', label: 'Saved', icon: <IconFolder /> },
   ];
 
   return (
@@ -64,7 +89,7 @@ export default function App() {
         saved={editor.saved}
         saving={editor.saving}
         onNew={editor.newResume}
-        onSave={editor.save}
+        onSave={() => editor.save(false)}
         onExportPDF={() => handleExport('pdf')}
         onExportDOCX={() => handleExport('docx')}
         exporting={exporting}
@@ -77,7 +102,7 @@ export default function App() {
         <button type="button" className={mobileView === 'preview' ? 'active' : ''} onClick={() => setMobileView('preview')}>Preview</button>
       </div>
 
-      <div className="workspace">
+      <div className={`workspace ${previewExpanded ? 'preview-expanded' : 'preview-collapsed'}`}>
         <aside className={`sidebar-left ${mobileView === 'edit' ? '' : 'mobile-hidden'}`}>
           <SidebarTabs activeTab={sidebarTab} onTabChange={(id) => setSidebarTab(id as SidebarTab)} tabs={sidebarTabs} />
 
@@ -89,6 +114,7 @@ export default function App() {
                 onAdd={editor.addSection}
                 onRemove={editor.removeSection}
                 onReorder={editor.reorderSection}
+                onMoveSection={editor.moveSection}
                 onUpdate={editor.updateSection}
                 activeSectionId={activeSectionId}
                 onSelect={setActiveSectionId}
@@ -104,24 +130,14 @@ export default function App() {
               />
             )}
             {sidebarTab === 'ats' && <ATSPanel checks={atsChecks} />}
-            {sidebarTab === 'saved' && resumes.length > 0 && (
-              <div className="saved-panel">
-                <h3>Your resumes</h3>
-                <ul className="resume-list">
-                  {resumes.map((r) => (
-                    <li key={r.id}>
-                      <button
-                        type="button"
-                        className={`resume-item ${editor.resumeId === r.id ? 'active' : ''}`}
-                        onClick={() => { editor.loadResume(r); setActiveSectionId('sec-personal'); }}
-                      >
-                        <span className="resume-item-title">{r.title}</span>
-                        <span className="resume-item-date">{new Date(r.updatedAt).toLocaleDateString()}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            {sidebarTab === 'saved' && (
+              <SavedResumesPanel
+                resumes={resumes}
+                activeResumeId={editor.resumeId}
+                onLoad={(r) => { editor.loadResume(r); setActiveSectionId('sec-personal'); }}
+                onDeleted={handleDeletedResume}
+                onError={(msg) => setToast({ message: msg, type: 'error' })}
+              />
             )}
           </div>
 
@@ -142,8 +158,12 @@ export default function App() {
           />
         </main>
 
-        <div className={mobileView === 'preview' ? '' : 'mobile-hidden'}>
-          <PreviewPanel data={editor.data} />
+        <div className={`preview-pane-wrapper ${mobileView === 'preview' ? 'mobile-preview-active' : ''}`}>
+          <PreviewPanel
+            data={editor.data}
+            expanded={previewExpanded}
+            onToggleExpand={() => setPreviewExpanded((v) => !v)}
+          />
         </div>
       </div>
 

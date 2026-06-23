@@ -1,6 +1,12 @@
 import { v4 as uuid } from 'uuid';
 import type { ResumeData, SectionType } from '../types/resume';
+import { Checkbox } from './Checkbox';
+import { DateField } from './DateField';
+import { LocationPicker } from './LocationPicker';
 import { IconPlus } from './Icons';
+import { SortableEntryList } from './SortableEntryList';
+import { UrlField } from './UrlField';
+import { IconGitHub, IconLink, IconLinkedIn, IconMail, IconPhone } from './SocialIcons';
 
 interface Props {
   data: ResumeData;
@@ -75,12 +81,20 @@ export function SectionEditor({ data, activeSectionId, onChange }: Props) {
         <EditorShell title="Contact Information" description={desc}>
           <div className="form-grid">
             <Field label="Full name" value={pi.fullName} onChange={(v) => updatePI({ fullName: v })} />
-            <Field label="Email" value={pi.email} onChange={(v) => updatePI({ email: v })} type="email" />
-            <Field label="Phone" value={pi.phone} onChange={(v) => updatePI({ phone: v })} type="tel" />
-            <Field label="Location" value={pi.location} onChange={(v) => updatePI({ location: v })} />
-            <Field label="Website" value={pi.website} onChange={(v) => updatePI({ website: v })} />
-            <Field label="LinkedIn" value={pi.linkedIn} onChange={(v) => updatePI({ linkedIn: v })} />
-            <Field label="GitHub" value={pi.github} onChange={(v) => updatePI({ github: v })} />
+            <Field label="Email" value={pi.email} onChange={(v) => updatePI({ email: v })} type="email" icon={<IconMail />} />
+            <Field label="Phone" value={pi.phone} onChange={(v) => updatePI({ phone: v })} type="tel" icon={<IconPhone />} />
+            <Field label="Website" value={pi.website} onChange={(v) => updatePI({ website: v })} icon={<IconLink />} placeholder="yoursite.com" />
+            <div className="form-grid-span">
+              <LocationPicker
+                label="Location"
+                value={pi.location}
+                onChange={(v) => updatePI({ location: v })}
+                fullWidth
+                idSuffix="contact"
+              />
+            </div>
+            <Field label="LinkedIn" value={pi.linkedIn} onChange={(v) => updatePI({ linkedIn: v })} icon={<IconLinkedIn size={15} />} placeholder="linkedin.com/in/username" />
+            <Field label="GitHub" value={pi.github} onChange={(v) => updatePI({ github: v })} icon={<IconGitHub size={15} />} placeholder="github.com/username" />
           </div>
         </EditorShell>
       );
@@ -110,37 +124,57 @@ export function SectionEditor({ data, activeSectionId, onChange }: Props) {
             ...prev,
             experience: [...prev.experience, {
               id: uuid(), company: '', position: '', location: '',
-              startDate: '', endDate: '', current: false, description: '',
+              startDate: '', endDate: '', current: false,
+              companyDescription: '', description: '',
             }],
           })))}
         >
-          {data.experience.length === 0 && <p className="empty-hint">No positions yet. Add your first role.</p>}
-          {data.experience.map((exp, idx) => (
-            <div key={exp.id} className="entry-card">
-              <div className="entry-card-header">
-                <strong>Position {idx + 1}</strong>
-                <button type="button" className="btn-text danger" onClick={() => onChange((prev) => ({
-                  ...prev,
-                  experience: prev.experience.filter((e) => e.id !== exp.id),
-                }))}>Remove</button>
-              </div>
-              <Field label="Position" value={exp.position} onChange={(v) => updateList('experience', exp.id, { position: v }, onChange)} />
-              <Field label="Company" value={exp.company} onChange={(v) => updateList('experience', exp.id, { company: v }, onChange)} />
-              <Field label="Location" value={exp.location} onChange={(v) => updateList('experience', exp.id, { location: v }, onChange)} />
-              <div className="row">
-                <Field label="Start" value={exp.startDate} onChange={(v) => updateList('experience', exp.id, { startDate: v }, onChange)} placeholder="YYYY-MM" />
-                <Field label="End" value={exp.endDate} onChange={(v) => updateList('experience', exp.id, { endDate: v }, onChange)} placeholder="YYYY-MM" disabled={exp.current} />
-              </div>
-              <label className="checkbox">
-                <input type="checkbox" checked={exp.current} onChange={(e) => updateList('experience', exp.id, { current: e.target.checked, endDate: '' }, onChange)} />
-                Currently working here
-              </label>
-              <label>
-                Description (one bullet per line)
-                <textarea rows={4} value={exp.description} onChange={(e) => updateList('experience', exp.id, { description: e.target.value }, onChange)} />
-              </label>
-            </div>
-          ))}
+          <SortableEntryList
+            items={data.experience}
+            labelPrefix="Position"
+            emptyHint={<p className="empty-hint">No positions yet. Add your first role.</p>}
+            onReorder={(experience) => onChange((prev) => ({ ...prev, experience }))}
+            onRemove={(id) => onChange((prev) => ({
+              ...prev,
+              experience: prev.experience.filter((e) => e.id !== id),
+            }))}
+            renderFields={(exp) => (
+              <>
+                <Field label="Position" value={exp.position} onChange={(v) => updateList('experience', exp.id, { position: v }, onChange)} />
+                <Field label="Company" value={exp.company} onChange={(v) => updateList('experience', exp.id, { company: v }, onChange)} />
+                <LocationPicker label="Location" value={exp.location} onChange={(v) => updateList('experience', exp.id, { location: v }, onChange)} compact idSuffix={exp.id} allowRemote fullWidth />
+                <div className="row">
+                  <DateField label="Start" value={exp.startDate} onChange={(v) => updateList('experience', exp.id, { startDate: v }, onChange)} />
+                  <DateField label="End" value={exp.endDate} onChange={(v) => updateList('experience', exp.id, { endDate: v }, onChange)} disabled={exp.current} />
+                </div>
+                <Checkbox
+                  className="entry-checkbox"
+                  label="Currently working here"
+                  checked={exp.current}
+                  onChange={(checked) => updateList('experience', exp.id, { current: checked, endDate: '' }, onChange)}
+                />
+                <label className="field-full">
+                  Company description
+                  <textarea
+                    rows={2}
+                    value={exp.companyDescription ?? ''}
+                    onChange={(e) => updateList('experience', exp.id, { companyDescription: e.target.value }, onChange)}
+                    placeholder="One line about the company — shown in small italics (supports *italic* and **bold**)"
+                  />
+                </label>
+                <label className="field-full">
+                  Description (one bullet per line)
+                  <textarea
+                    rows={4}
+                    value={exp.description}
+                    onChange={(e) => updateList('experience', exp.id, { description: e.target.value }, onChange)}
+                    placeholder="Use *italic* and **bold** for emphasis"
+                  />
+                  <span className="field-hint">Wrap text in *asterisks* for italics, **double asterisks** for bold.</span>
+                </label>
+              </>
+            )}
+          />
         </EditorShell>
       );
 
@@ -152,33 +186,36 @@ export function SectionEditor({ data, activeSectionId, onChange }: Props) {
           action={addBtn('Add education', () => onChange((prev) => ({
             ...prev,
             education: [...prev.education, {
-              id: uuid(), institution: '', degree: '', field: '',
+              id: uuid(), institution: '', degree: '', field: '', location: '',
               startDate: '', endDate: '', gpa: '',
             }],
           })))}
         >
-          {data.education.length === 0 && <p className="empty-hint">No education entries yet.</p>}
-          {data.education.map((edu, idx) => (
-            <div key={edu.id} className="entry-card">
-              <div className="entry-card-header">
-                <strong>Entry {idx + 1}</strong>
-                <button type="button" className="btn-text danger" onClick={() => onChange((prev) => ({
-                  ...prev,
-                  education: prev.education.filter((e) => e.id !== edu.id),
-                }))}>Remove</button>
-              </div>
-              <Field label="Institution" value={edu.institution} onChange={(v) => updateList('education', edu.id, { institution: v }, onChange)} />
-              <div className="row">
-                <Field label="Degree" value={edu.degree} onChange={(v) => updateList('education', edu.id, { degree: v }, onChange)} />
-                <Field label="Field" value={edu.field} onChange={(v) => updateList('education', edu.id, { field: v }, onChange)} />
-              </div>
-              <div className="row row-3">
-                <Field label="Start" value={edu.startDate} onChange={(v) => updateList('education', edu.id, { startDate: v }, onChange)} placeholder="YYYY-MM" />
-                <Field label="End" value={edu.endDate} onChange={(v) => updateList('education', edu.id, { endDate: v }, onChange)} placeholder="YYYY-MM" />
-                <Field label="GPA" value={edu.gpa} onChange={(v) => updateList('education', edu.id, { gpa: v }, onChange)} />
-              </div>
-            </div>
-          ))}
+          <SortableEntryList
+            items={data.education}
+            labelPrefix="Entry"
+            emptyHint={<p className="empty-hint">No education entries yet.</p>}
+            onReorder={(education) => onChange((prev) => ({ ...prev, education }))}
+            onRemove={(id) => onChange((prev) => ({
+              ...prev,
+              education: prev.education.filter((e) => e.id !== id),
+            }))}
+            renderFields={(edu) => (
+              <>
+                <Field label="Institution" value={edu.institution} onChange={(v) => updateList('education', edu.id, { institution: v }, onChange)} />
+                <LocationPicker label="Location" value={edu.location ?? ''} onChange={(v) => updateList('education', edu.id, { location: v }, onChange)} compact idSuffix={edu.id} fullWidth />
+                <div className="row">
+                  <Field label="Degree" value={edu.degree} onChange={(v) => updateList('education', edu.id, { degree: v }, onChange)} />
+                  <Field label="Field" value={edu.field} onChange={(v) => updateList('education', edu.id, { field: v }, onChange)} />
+                </div>
+                <div className="row row-3">
+                  <DateField label="Start" value={edu.startDate} onChange={(v) => updateList('education', edu.id, { startDate: v }, onChange)} precision="year" />
+                  <DateField label="End" value={edu.endDate} onChange={(v) => updateList('education', edu.id, { endDate: v }, onChange)} precision="year" />
+                  <Field label="GPA" value={edu.gpa} onChange={(v) => updateList('education', edu.id, { gpa: v }, onChange)} />
+                </div>
+              </>
+            )}
+          />
         </EditorShell>
       );
 
@@ -195,12 +232,15 @@ export function SectionEditor({ data, activeSectionId, onChange }: Props) {
               }))}
               placeholder="e.g. Go, React, PostgreSQL, AWS"
             />
-            {data.skills.length > 0 && (
-              <div className="skill-chips">
+          </label>
+          {data.skills.length > 0 && (
+            <div className="skills-editor-preview">
+              <p className="skills-editor-label">Preview — how skills appear on your resume</p>
+              <div className="skill-chips skill-chips-highlight">
                 {data.skills.map((s) => <span key={s} className="skill-chip">{s}</span>)}
               </div>
-            )}
-          </label>
+            </div>
+          )}
         </EditorShell>
       );
 
@@ -214,22 +254,24 @@ export function SectionEditor({ data, activeSectionId, onChange }: Props) {
             projects: [...prev.projects, { id: uuid(), name: '', url: '', description: '', technologies: '' }],
           })))}
         >
-          {data.projects.length === 0 && <p className="empty-hint">No projects yet.</p>}
-          {data.projects.map((proj, idx) => (
-            <div key={proj.id} className="entry-card">
-              <div className="entry-card-header">
-                <strong>Project {idx + 1}</strong>
-                <button type="button" className="btn-text danger" onClick={() => onChange((prev) => ({
-                  ...prev,
-                  projects: prev.projects.filter((p) => p.id !== proj.id),
-                }))}>Remove</button>
-              </div>
-              <Field label="Name" value={proj.name} onChange={(v) => updateList('projects', proj.id, { name: v }, onChange)} />
-              <Field label="URL" value={proj.url} onChange={(v) => updateList('projects', proj.id, { url: v }, onChange)} />
-              <Field label="Technologies" value={proj.technologies} onChange={(v) => updateList('projects', proj.id, { technologies: v }, onChange)} />
-              <label className="field-full">Description<textarea rows={3} value={proj.description} onChange={(e) => updateList('projects', proj.id, { description: e.target.value }, onChange)} /></label>
-            </div>
-          ))}
+          <SortableEntryList
+            items={data.projects}
+            labelPrefix="Project"
+            emptyHint={<p className="empty-hint">No projects yet.</p>}
+            onReorder={(projects) => onChange((prev) => ({ ...prev, projects }))}
+            onRemove={(id) => onChange((prev) => ({
+              ...prev,
+              projects: prev.projects.filter((p) => p.id !== id),
+            }))}
+            renderFields={(proj) => (
+              <>
+                <Field label="Name" value={proj.name} onChange={(v) => updateList('projects', proj.id, { name: v }, onChange)} />
+                <UrlField label="URL" value={proj.url} onChange={(v) => updateList('projects', proj.id, { url: v }, onChange)} placeholder="github.com/username/project" />
+                <Field label="Technologies" value={proj.technologies} onChange={(v) => updateList('projects', proj.id, { technologies: v }, onChange)} />
+                <label className="field-full">Description<textarea rows={3} value={proj.description} onChange={(e) => updateList('projects', proj.id, { description: e.target.value }, onChange)} /></label>
+              </>
+            )}
+          />
         </EditorShell>
       );
 
@@ -243,21 +285,24 @@ export function SectionEditor({ data, activeSectionId, onChange }: Props) {
             certifications: [...prev.certifications, { id: uuid(), name: '', issuer: '', date: '', url: '' }],
           })))}
         >
-          {data.certifications.length === 0 && <p className="empty-hint">No certifications yet.</p>}
-          {data.certifications.map((cert, idx) => (
-            <div key={cert.id} className="entry-card">
-              <div className="entry-card-header">
-                <strong>Certification {idx + 1}</strong>
-                <button type="button" className="btn-text danger" onClick={() => onChange((prev) => ({
-                  ...prev,
-                  certifications: prev.certifications.filter((c) => c.id !== cert.id),
-                }))}>Remove</button>
-              </div>
-              <Field label="Name" value={cert.name} onChange={(v) => updateList('certifications', cert.id, { name: v }, onChange)} />
-              <Field label="Issuer" value={cert.issuer} onChange={(v) => updateList('certifications', cert.id, { issuer: v }, onChange)} />
-              <Field label="Date" value={cert.date} onChange={(v) => updateList('certifications', cert.id, { date: v }, onChange)} placeholder="YYYY-MM" />
-            </div>
-          ))}
+          <SortableEntryList
+            items={data.certifications}
+            labelPrefix="Certification"
+            emptyHint={<p className="empty-hint">No certifications yet.</p>}
+            onReorder={(certifications) => onChange((prev) => ({ ...prev, certifications }))}
+            onRemove={(id) => onChange((prev) => ({
+              ...prev,
+              certifications: prev.certifications.filter((c) => c.id !== id),
+            }))}
+            renderFields={(cert) => (
+              <>
+                <Field label="Name" value={cert.name} onChange={(v) => updateList('certifications', cert.id, { name: v }, onChange)} />
+                <Field label="Issuer" value={cert.issuer} onChange={(v) => updateList('certifications', cert.id, { issuer: v }, onChange)} />
+                <DateField label="Date" value={cert.date} onChange={(v) => updateList('certifications', cert.id, { date: v }, onChange)} />
+                <UrlField label="Certificate URL" value={cert.url} onChange={(v) => updateList('certifications', cert.id, { url: v }, onChange)} placeholder="credly.com/badges/…" />
+              </>
+            )}
+          />
         </EditorShell>
       );
 
@@ -271,28 +316,30 @@ export function SectionEditor({ data, activeSectionId, onChange }: Props) {
             languages: [...prev.languages, { id: uuid(), name: '', proficiency: 'Professional' }],
           })))}
         >
-          {data.languages.length === 0 && <p className="empty-hint">No languages yet.</p>}
-          {data.languages.map((lang, idx) => (
-            <div key={lang.id} className="entry-card">
-              <div className="entry-card-header">
-                <strong>Language {idx + 1}</strong>
-                <button type="button" className="btn-text danger" onClick={() => onChange((prev) => ({
-                  ...prev,
-                  languages: prev.languages.filter((l) => l.id !== lang.id),
-                }))}>Remove</button>
-              </div>
-              <Field label="Language" value={lang.name} onChange={(v) => updateList('languages', lang.id, { name: v }, onChange)} />
-              <label>Proficiency
-                <select value={lang.proficiency} onChange={(e) => updateList('languages', lang.id, { proficiency: e.target.value }, onChange)}>
-                  <option>Native</option>
-                  <option>Fluent</option>
-                  <option>Professional</option>
-                  <option>Intermediate</option>
-                  <option>Basic</option>
-                </select>
-              </label>
-            </div>
-          ))}
+          <SortableEntryList
+            items={data.languages}
+            labelPrefix="Language"
+            emptyHint={<p className="empty-hint">No languages yet.</p>}
+            onReorder={(languages) => onChange((prev) => ({ ...prev, languages }))}
+            onRemove={(id) => onChange((prev) => ({
+              ...prev,
+              languages: prev.languages.filter((l) => l.id !== id),
+            }))}
+            renderFields={(lang) => (
+              <>
+                <Field label="Language" value={lang.name} onChange={(v) => updateList('languages', lang.id, { name: v }, onChange)} />
+                <label>Proficiency
+                  <select value={lang.proficiency} onChange={(e) => updateList('languages', lang.id, { proficiency: e.target.value }, onChange)}>
+                    <option>Native</option>
+                    <option>Fluent</option>
+                    <option>Professional</option>
+                    <option>Intermediate</option>
+                    <option>Basic</option>
+                  </select>
+                </label>
+              </>
+            )}
+          />
         </EditorShell>
       );
 
@@ -324,14 +371,18 @@ export function SectionEditor({ data, activeSectionId, onChange }: Props) {
 }
 
 function Field({
-  label, value, onChange, placeholder, disabled, type = 'text',
+  label, value, onChange, placeholder, disabled, type = 'text', icon,
 }: {
   label: string; value: string; onChange: (v: string) => void;
   placeholder?: string; disabled?: boolean; type?: string;
+  icon?: React.ReactNode;
 }) {
   return (
-    <label>
-      {label}
+    <label className={icon ? 'field-with-icon' : undefined}>
+      <span className="field-label-row">
+        {icon && <span className="field-icon">{icon}</span>}
+        {label}
+      </span>
       <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} />
     </label>
   );

@@ -1,24 +1,10 @@
 import type { ResumeData } from '../types/resume';
+import { ContactLine } from '../components/ContactLine';
+import { ExperienceEntryPreview } from '../components/ExperienceEntryPreview';
+import { ExternalLink } from '../components/ExternalLink';
+import { SkillsDisplay, TechTags } from '../components/SkillsDisplay';
 import { enabledSections } from '../utils/defaults';
-
-function contactLine(data: ResumeData): string {
-  const pi = data.personalInfo;
-  return [pi.email, pi.phone, pi.location, pi.website, pi.linkedIn, pi.github]
-    .filter(Boolean)
-    .join(' | ');
-}
-
-function formatDateRange(start: string, end: string, current: boolean): string {
-  const s = start?.slice(0, 7) ?? '';
-  if (current) return s ? `${s} — Present` : 'Present';
-  const e = end?.slice(0, 7) ?? '';
-  if (s && e) return `${s} — ${e}`;
-  return s || e;
-}
-
-function bullets(text: string): string[] {
-  return text.split('\n').map((l) => l.trim()).filter(Boolean);
-}
+import { formatDateRange } from '../utils/dateFormat';
 
 interface TemplateProps {
   data: ResumeData;
@@ -35,7 +21,7 @@ export function ATSTemplate({ data }: TemplateProps) {
       style={{ fontFamily, fontSize: `${fontSize}pt`, color: '#000' }}
     >
       <h1 style={{ color: primaryColor }}>{pi.fullName}</h1>
-      <div className="contact-line">{contactLine(data)}</div>
+      <ContactLine info={pi} />
 
       {sections.map((section) => {
         switch (section.type) {
@@ -53,21 +39,7 @@ export function ATSTemplate({ data }: TemplateProps) {
               <section key={section.id}>
                 <h2 style={{ borderColor: primaryColor, color: primaryColor }}>{section.title}</h2>
                 {data.experience.map((exp) => (
-                  <div key={exp.id} className="entry">
-                    <div className="entry-title">
-                      {exp.position} | {exp.company}
-                    </div>
-                    <div className="entry-meta">
-                      {[formatDateRange(exp.startDate, exp.endDate, exp.current), exp.location]
-                        .filter(Boolean)
-                        .join(' | ')}
-                    </div>
-                    <ul>
-                      {bullets(exp.description).map((b, i) => (
-                        <li key={i}>{b}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  <ExperienceEntryPreview key={exp.id} exp={exp} />
                 ))}
               </section>
             );
@@ -82,7 +54,7 @@ export function ATSTemplate({ data }: TemplateProps) {
                       {edu.degree} {edu.field} | {edu.institution}
                     </div>
                     <div className="entry-meta">
-                      {[formatDateRange(edu.startDate, edu.endDate, false), edu.gpa]
+                      {[formatDateRange(edu.startDate, edu.endDate, false), edu.location, edu.gpa]
                         .filter(Boolean)
                         .join(' | ')}
                     </div>
@@ -93,9 +65,9 @@ export function ATSTemplate({ data }: TemplateProps) {
           case 'skills':
             if (!data.skills.length) return null;
             return (
-              <section key={section.id}>
+              <section key={section.id} className="resume-section-skills">
                 <h2 style={{ borderColor: primaryColor, color: primaryColor }}>{section.title}</h2>
-                <p>{data.skills.join(', ')}</p>
+                <SkillsDisplay skills={data.skills} primaryColor={primaryColor} />
               </section>
             );
           case 'projects':
@@ -105,11 +77,11 @@ export function ATSTemplate({ data }: TemplateProps) {
                 <h2 style={{ borderColor: primaryColor, color: primaryColor }}>{section.title}</h2>
                 {data.projects.map((proj) => (
                   <div key={proj.id} className="entry">
-                    <div className="entry-title">
-                      {proj.name}
-                      {proj.url ? ` | ${proj.url}` : ''}
+                    <div className="entry-title-row">
+                      <span className="entry-title">{proj.name}</span>
+                      {proj.url && <ExternalLink href={proj.url} />}
                     </div>
-                    {proj.technologies && <div className="entry-meta">{proj.technologies}</div>}
+                    {proj.technologies && <TechTags value={proj.technologies} primaryColor={primaryColor} />}
                     <p>{proj.description}</p>
                   </div>
                 ))}
@@ -122,10 +94,13 @@ export function ATSTemplate({ data }: TemplateProps) {
                 <h2 style={{ borderColor: primaryColor, color: primaryColor }}>{section.title}</h2>
                 {data.certifications.map((cert) => (
                   <div key={cert.id} className="entry">
-                    <div className="entry-title">
-                      {cert.name} | {cert.issuer}
+                    <div className="entry-title-row">
+                      <span className="entry-title">{cert.name}</span>
+                      {cert.url && <ExternalLink href={cert.url} />}
                     </div>
-                    {cert.date && <div className="entry-meta">{cert.date}</div>}
+                    <div className="entry-meta">
+                      {[cert.issuer, cert.date].filter(Boolean).join(' · ')}
+                    </div>
                   </div>
                 ))}
               </section>
@@ -164,7 +139,7 @@ export function ClassicTemplate({ data }: TemplateProps) {
   return (
     <div className="resume-page resume-classic" style={{ fontFamily: data.customization.fontFamily, fontSize: data.customization.fontSize }}>
       <h1 style={{ color }}>{pi.fullName}</h1>
-      <div className="contact-line">{contactLine(data)}</div>
+      <ContactLine info={pi} />
       {sections.map((section) => (
         <SectionBlock key={section.id} section={section} data={data} color={color} />
       ))}
@@ -175,20 +150,17 @@ export function ClassicTemplate({ data }: TemplateProps) {
 export function ModernTemplate({ data }: TemplateProps) {
   const pi = data.personalInfo;
   const color = data.customization.primaryColor;
-  const contactItems = [pi.email, pi.phone, pi.location, pi.website].filter(Boolean);
   const sections = enabledSections(data).filter((s) => s.type !== 'skills');
 
   return (
     <div className="resume-page resume-modern" style={{ fontSize: data.customization.fontSize }}>
       <aside className="sidebar" style={{ background: color }}>
         <h1>{pi.fullName}</h1>
-        {contactItems.map((item) => (
-          <div key={item} className="sidebar-item">{item}</div>
-        ))}
+        <ContactLine info={pi} vertical light compact />
         {data.skills.length > 0 && isEnabled(data, 'skills') && (
           <>
             <h3>Skills</h3>
-            <ul>{data.skills.map((s) => <li key={s}>{s}</li>)}</ul>
+            <SkillsDisplay skills={data.skills} variant="sidebar" />
           </>
         )}
       </aside>
@@ -214,7 +186,7 @@ export function MinimalTemplate({ data }: TemplateProps) {
   return (
     <div className="resume-page resume-minimal" style={{ fontFamily: data.customization.fontFamily, fontSize: data.customization.fontSize }}>
       <h1>{pi.fullName}</h1>
-      <div className="contact-line centered">{contactLine(data)}</div>
+      <ContactLine info={pi} centered />
       <hr />
       {isEnabled(data, 'summary') && pi.summary && <p className="centered">{pi.summary}</p>}
       {sections.filter((s) => s.type !== 'summary').map((section) => (
@@ -261,11 +233,7 @@ function SectionBlock({
         <section key={section.id}>
           {h2}
           {data.experience.map((exp) => (
-            <div key={exp.id} className="entry">
-              <div className="entry-title">{exp.position} — {exp.company}</div>
-              <div className="entry-meta">{formatDateRange(exp.startDate, exp.endDate, exp.current)}</div>
-              <p className="pre-line">{exp.description}</p>
-            </div>
+            <ExperienceEntryPreview key={exp.id} exp={exp} />
           ))}
         </section>
       );
@@ -277,13 +245,23 @@ function SectionBlock({
           {data.education.map((edu) => (
             <div key={edu.id} className="entry">
               <div className="entry-title">{edu.degree} {edu.field} — {edu.institution}</div>
+              {(edu.location || edu.startDate) && (
+                <div className="entry-meta">
+                  {[formatDateRange(edu.startDate, edu.endDate, false), edu.location].filter(Boolean).join(' · ')}
+                </div>
+              )}
             </div>
           ))}
         </section>
       );
     case 'skills':
       if (hideSkills || !data.skills.length) return null;
-      return <section key={section.id}>{h2}<p>{data.skills.join(', ')}</p></section>;
+      return (
+        <section key={section.id} className="resume-section-skills">
+          {h2}
+          <SkillsDisplay skills={data.skills} primaryColor={color} />
+        </section>
+      );
     case 'projects':
       if (!data.projects.length) return null;
       return (
@@ -291,7 +269,11 @@ function SectionBlock({
           {h2}
           {data.projects.map((p) => (
             <div key={p.id} className="entry">
-              <div className="entry-title">{p.name}</div>
+              <div className="entry-title-row">
+                <span className="entry-title">{p.name}</span>
+                {p.url && <ExternalLink href={p.url} />}
+              </div>
+              {p.technologies && <TechTags value={p.technologies} primaryColor={color} />}
               <p>{p.description}</p>
             </div>
           ))}
@@ -304,7 +286,11 @@ function SectionBlock({
           {h2}
           {data.certifications.map((c) => (
             <div key={c.id} className="entry">
-              <div className="entry-title">{c.name} — {c.issuer}</div>
+              <div className="entry-title-row">
+                <span className="entry-title">{c.name}</span>
+                {c.url && <ExternalLink href={c.url} />}
+              </div>
+              <div className="entry-meta">{[c.issuer, c.date].filter(Boolean).join(' · ')}</div>
             </div>
           ))}
         </section>

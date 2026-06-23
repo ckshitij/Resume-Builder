@@ -1,5 +1,6 @@
 import type { Section, SectionType } from '../types/resume';
 import { ATS_STANDARD_TITLES } from '../types/resume';
+import { useListDragReorder } from '../hooks/useListDragReorder';
 import {
   IconAward,
   IconBriefcase,
@@ -9,6 +10,7 @@ import {
   IconFolder,
   IconGlobe,
   IconGraduation,
+  IconGrip,
   IconLayers,
   IconPlus,
   IconStar,
@@ -21,6 +23,7 @@ interface Props {
   onAdd: (type: SectionType) => void;
   onRemove: (id: string) => void;
   onReorder: (id: string, direction: 'up' | 'down') => void;
+  onMoveSection: (fromIndex: number, toIndex: number) => void;
   onUpdate: (id: string, patch: Partial<Section>) => void;
   activeSectionId: string | null;
   onSelect: (id: string) => void;
@@ -56,45 +59,67 @@ export function SectionManager({
   onAdd,
   onRemove,
   onReorder,
+  onMoveSection,
   onUpdate,
   activeSectionId,
   onSelect,
 }: Props) {
+  const drag = useListDragReorder(onMoveSection);
+
   return (
     <div className="section-manager">
-      <p className="panel-hint">Click a section to edit. Drag order with arrows.</p>
+      <p className="panel-hint">Click a section to edit. Drag the handle to reorder.</p>
       <ul className="section-list">
-        {sections.map((section, idx) => (
-          <li
-            key={section.id}
-            className={`section-item ${section.enabled ? '' : 'disabled'} ${activeSectionId === section.id ? 'active' : ''}`}
-          >
-            <button type="button" className="section-select" onClick={() => onSelect(section.id)}>
-              <span className="section-icon">{SECTION_ICONS[section.type]}</span>
-              <span className="section-label">
-                {TYPE_LABELS[section.type]}
-                {!section.enabled && <span className="hidden-badge">Hidden</span>}
-              </span>
-            </button>
-            {section.type !== 'personal' && (
-              <div className="section-actions">
-                <button type="button" className="btn-icon-sm" title="Move up" disabled={idx === 0} onClick={() => onReorder(section.id, 'up')}>
-                  <IconChevronUp />
+        {sections.map((section, idx) => {
+          const canDrag = section.type !== 'personal';
+          return (
+            <li
+              key={section.id}
+              className={drag.itemClassName(
+                idx,
+                `section-item ${section.enabled ? '' : 'disabled'} ${activeSectionId === section.id ? 'active' : ''}`,
+              )}
+              {...drag.getItemProps(idx)}
+            >
+              {canDrag ? (
+                <button
+                  type="button"
+                  className="drag-handle"
+                  aria-label={`Drag to reorder ${TYPE_LABELS[section.type]}`}
+                  {...drag.getHandleProps(idx)}
+                >
+                  <IconGrip />
                 </button>
-                <button type="button" className="btn-icon-sm" title="Move down" disabled={idx === sections.length - 1} onClick={() => onReorder(section.id, 'down')}>
-                  <IconChevronDown />
-                </button>
-                {section.enabled ? (
-                  <button type="button" className="btn-icon-sm danger" title="Hide section" onClick={() => onRemove(section.id)}>−</button>
-                ) : (
-                  <button type="button" className="btn-icon-sm success" title="Show section" onClick={() => onUpdate(section.id, { enabled: true })}>
-                    <IconPlus />
+              ) : (
+                <span className="drag-handle drag-handle-spacer" aria-hidden="true" />
+              )}
+              <button type="button" className="section-select" onClick={() => onSelect(section.id)}>
+                <span className="section-icon">{SECTION_ICONS[section.type]}</span>
+                <span className="section-label">
+                  {TYPE_LABELS[section.type]}
+                  {!section.enabled && <span className="hidden-badge">Hidden</span>}
+                </span>
+              </button>
+              {section.type !== 'personal' && (
+                <div className="section-actions">
+                  <button type="button" className="btn-icon-sm" title="Move up" disabled={idx === 0 || sections[idx - 1]?.type === 'personal'} onClick={() => onReorder(section.id, 'up')}>
+                    <IconChevronUp />
                   </button>
-                )}
-              </div>
-            )}
-          </li>
-        ))}
+                  <button type="button" className="btn-icon-sm" title="Move down" disabled={idx === sections.length - 1} onClick={() => onReorder(section.id, 'down')}>
+                    <IconChevronDown />
+                  </button>
+                  {section.enabled ? (
+                    <button type="button" className="btn-icon-sm danger" title="Hide section" onClick={() => onRemove(section.id)}>−</button>
+                  ) : (
+                    <button type="button" className="btn-icon-sm success" title="Show section" onClick={() => onUpdate(section.id, { enabled: true })}>
+                      <IconPlus />
+                    </button>
+                  )}
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       {availableToAdd.length > 0 && (

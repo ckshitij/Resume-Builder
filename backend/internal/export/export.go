@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jung-kurt/gofpdf"
 
@@ -285,6 +286,14 @@ func writeExperienceEntry(pdf *gofpdf.Fpdf, exp models.Experience, fontSize floa
 		pdf.SetTextColor(100, 100, 100)
 		pdf.CellFormat(0, 4, meta, "", 1, "L", false, 0, "")
 	}
+	if strings.TrimSpace(exp.CompanyDescription) != "" {
+		pdf.SetFont("Helvetica", "I", fontSize-1)
+		if fontSize-1 < 8 {
+			pdf.SetFont("Helvetica", "I", 8)
+		}
+		pdf.SetTextColor(90, 90, 90)
+		pdf.MultiCell(0, 4, stripRichMarkup(exp.CompanyDescription), "", "L", false)
+	}
 	pdf.SetFont("Helvetica", "", fontSize)
 	pdf.SetTextColor(60, 60, 60)
 	for _, line := range strings.Split(exp.Description, "\n") {
@@ -293,7 +302,7 @@ func writeExperienceEntry(pdf *gofpdf.Fpdf, exp models.Experience, fontSize floa
 			continue
 		}
 		pdf.CellFormat(4, 4, "•", "", 0, "L", false, 0, "")
-		pdf.MultiCell(0, 4, line, "", "L", false)
+		pdf.MultiCell(0, 4, stripRichMarkup(line), "", "L", false)
 	}
 	pdf.Ln(1)
 }
@@ -324,8 +333,17 @@ func formatDateRange(start, end string, current bool) string {
 }
 
 func formatMonth(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return ""
+	}
+	if len(s) == 4 {
+		return s
+	}
 	if len(s) >= 7 {
-		return s[:7]
+		if t, err := time.Parse("2006-01", s[:7]); err == nil {
+			return t.Format("Jan 2006")
+		}
 	}
 	return s
 }

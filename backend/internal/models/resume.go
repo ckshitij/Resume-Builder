@@ -68,14 +68,15 @@ type PersonalInfo struct {
 }
 
 type Experience struct {
-	ID          string `json:"id"`
-	Company     string `json:"company"`
-	Position    string `json:"position"`
-	Location    string `json:"location"`
-	StartDate   string `json:"startDate"`
-	EndDate     string `json:"endDate"`
-	Current     bool   `json:"current"`
-	Description string `json:"description"`
+	ID                 string `json:"id"`
+	Company            string `json:"company"`
+	Position           string `json:"position"`
+	Location           string `json:"location"`
+	StartDate          string `json:"startDate"`
+	EndDate            string `json:"endDate"`
+	Current            bool   `json:"current"`
+	CompanyDescription string `json:"companyDescription"`
+	Description        string `json:"description"`
 }
 
 type Education struct {
@@ -83,6 +84,7 @@ type Education struct {
 	Institution string `json:"institution"`
 	Degree      string `json:"degree"`
 	Field       string `json:"field"`
+	Location    string `json:"location"`
 	StartDate   string `json:"startDate"`
 	EndDate     string `json:"endDate"`
 	GPA         string `json:"gpa"`

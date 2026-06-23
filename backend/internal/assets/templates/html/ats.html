@@ -27,6 +27,7 @@
     .entry { margin-bottom: 8pt; }
     .entry-header { font-weight: 700; }
     .entry-sub { font-size: 10pt; margin-bottom: 2pt; }
+    .entry-company-desc { font-size: 9.5pt; font-style: italic; color: #555; margin: 2pt 0 4pt; }
     ul { margin-left: 18pt; margin-top: 2pt; }
     li { margin-bottom: 2pt; }
     .skills-line { margin-top: 2pt; }
@@ -54,6 +55,7 @@
   <div class="entry">
     <div class="entry-header">{{.Position}} | {{.Company}}</div>
     <div class="entry-sub">{{.Meta}}</div>
+    {{if .CompanyDescription}}<div class="entry-company-desc">{{.CompanyDescription}}</div>{{end}}
     <ul>{{range .Bullets}}<li>{{.}}</li>{{end}}</ul>
   </div>
   {{end}}

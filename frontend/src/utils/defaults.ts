@@ -38,6 +38,7 @@ export function defaultResumeData(): ResumeData {
         startDate: '2021-01',
         endDate: '',
         current: true,
+        companyDescription: 'Series B fintech startup focused on payments infrastructure.',
         description:
           'Led development of microservices architecture serving 1M+ users.\nImproved system performance by 40% through optimization.',
       },
@@ -48,6 +49,7 @@ export function defaultResumeData(): ResumeData {
         institution: 'University of California',
         degree: 'B.S.',
         field: 'Computer Science',
+        location: 'Berkeley, CA',
         startDate: '2015-09',
         endDate: '2019-05',
         gpa: '3.8',
